@@ -67,7 +67,7 @@ public sealed class MoneyTransaction : IEntity, ISoftDelete {
     public Guid AccountId { get; set; }
     public string Type { get; set; } = TransactionTypes.Expense;
     public decimal Amount { get; set; }
-    public DateTimeOffset TransactionDate { get; set; }
+    public DateTime TransactionDate { get; set; }
     public string Note { get; set; } = "";
     public string Merchant { get; set; } = "";
     public string? ReceiptUrl { get; set; }
@@ -93,7 +93,7 @@ public sealed class Reminder : IEntity, ISoftDelete {
     public Guid FundId { get; set; }
     public string Title { get; set; } = "";
     public decimal? ExpectedAmount { get; set; }
-    public DateTimeOffset NextDueAt { get; set; }
+    public DateTime NextDueAt { get; set; }
     public string Recurrence { get; set; } = "none";
     public bool IsEnabled { get; set; } = true;
     public bool IsDeleted { get; set; }
