@@ -10,3 +10,5 @@ mobile/build/
 mobile/.flutter-plugins*
 quy_nha_minh_source.zip
 .idea/
+
+.tools/
