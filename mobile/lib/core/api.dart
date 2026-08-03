@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -62,11 +63,23 @@ class Api {
       if (r.body.isEmpty) return null;
       return jsonDecode(utf8.decode(r.bodyBytes));
     } on SocketException catch (_) {
-      if (retryQueue && method != 'GET') await _enqueue(method, path, body);
-      throw ApiError('Không có mạng. Dữ liệu đã được lưu để đồng bộ sau.', 0);
+      if (retryQueue && method != 'GET') {
+        await _enqueue(method, path, body);
+        return {'queued': true};
+      }
+      throw ApiError('Không có mạng.', 0);
     } on http.ClientException catch (_) {
-      if (retryQueue && method != 'GET') await _enqueue(method, path, body);
+      if (retryQueue && method != 'GET') {
+        await _enqueue(method, path, body);
+        return {'queued': true};
+      }
       throw ApiError('Không thể kết nối máy chủ.', 0);
+    } on TimeoutException catch (_) {
+      if (retryQueue && method != 'GET') {
+        await _enqueue(method, path, body);
+        return {'queued': true};
+      }
+      throw ApiError('Kết nối quá thời gian.', 0);
     }
   }
 
@@ -82,20 +95,33 @@ class Api {
   }
 
   static Future<List<dynamic>> funds() async =>
-      List<dynamic>.from(await request('GET', '/api/funds'));
+      List<dynamic>.from(await _getCached('funds', '/api/funds'));
   static Future<dynamic> createFund(String name) =>
       request('POST', '/api/funds', body: {'name': name});
   static Future<dynamic> joinFund(String code) =>
       request('POST', '/api/funds/join', body: {'inviteCode': code});
+  static Future<dynamic> _getCached(String key, String path) async {
+    try {
+      final value = await request('GET', path);
+      await cache(key, value);
+      return value;
+    } on ApiError {
+      final value = await cached(key);
+      if (value != null) return value;
+      rethrow;
+    }
+  }
+
   static Future<List<dynamic>> list(String fund, String resource,
           {String query = ''}) async =>
-      List<dynamic>.from(await request('GET',
+      List<dynamic>.from(await _getCached('$fund-$resource-$query',
           '/api/funds/$fund/$resource${query.isEmpty ? '' : '?$query'}'));
   static Future<dynamic> dashboard(String fund, int year, int month) =>
-      request('GET', '/api/funds/$fund/dashboard?year=$year&month=$month');
+      _getCached('$fund-dashboard-$year-$month',
+          '/api/funds/$fund/dashboard?year=$year&month=$month');
   static Future<Map<String, dynamic>> transactions(String fund,
           {String query = ''}) async =>
-      Map<String, dynamic>.from(await request('GET',
+      Map<String, dynamic>.from(await _getCached('$fund-transactions-$query',
           '/api/funds/$fund/transactions${query.isEmpty ? '' : '?$query'}'));
   static Future<dynamic> save(
           String fund, String resource, Map<String, dynamic> body,

@@ -76,3 +76,18 @@ D:\flutter\bin\flutter build web --release --dart-define=API_BASE_URL=http://127
 - Giao dịch xóa được đưa vào thùng rác trước khi xóa vĩnh viễn.
 - Sao lưu JSON, Excel và PDF được bảo vệ bằng JWT.
 - Bản APK hiện tạo bằng khóa debug mặc định của Flutter nếu chưa cấu hình signing riêng. Trước khi phát hành Google Play, tạo keystore riêng và cấu hình `key.properties`.
+
+## APK chạy thử qua Wi-Fi
+
+Bản debug chỉ dành cho mạng nội bộ và cho phép HTTP. Máy tính và điện thoại phải cùng Wi-Fi; thay IP dưới đây bằng IPv4 của máy chạy backend:
+
+```powershell
+cd D:\quynhaminh\mobile
+D:\flutter\bin\flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.1.35:5180
+```
+
+Bản release không cho HTTP và phải dùng URL Render HTTPS. Đây là chủ đích bảo mật. Tệp `QuyNhaMinh-2.0-local-test.apk` dùng để thử trong Wi-Fi hiện tại; `QuyNhaMinh-2.0-release.apk` dùng sau khi thay URL Render thật và build lại.
+
+## Ngoại tuyến
+
+Dashboard, danh sách quỹ, danh mục, tài khoản và giao dịch dùng cache cục bộ. Giao dịch/thao tác ghi khi mất mạng được đưa vào hàng đợi và gửi lại từ **Cài đặt → Đồng bộ dữ liệu**.
