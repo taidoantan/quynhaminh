@@ -12,7 +12,7 @@ namespace QuyNhaMinh.Api.Endpoints;
 
 public static class DataEndpoints {
     public static IEndpointRouteBuilder MapDataFeatures(this IEndpointRouteBuilder app) {
-        var api = app.MapGroup("/api/funds/{fundId:guid}").RequireAuthorization();
+        var api = app.MapGroup("/api/funds/{fundId:guid}").RequireAuthorization().RequireRateLimiting("api");
         api.MapPost("/receipts/analyze", AnalyzeReceipt).WithTags("Gemini OCR").DisableAntiforgery();
         api.MapGet("/backup", Backup).WithTags("Backup and trash");
         api.MapGet("/export/excel", Excel).WithTags("Dashboard and reports");

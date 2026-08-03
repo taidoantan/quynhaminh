@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -235,17 +233,19 @@ class _FundGateState extends State<FundGate> {
       ctl.clear();
       await load();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('$e')));
+      }
       setState(() => busy = false);
     }
   }
 
   @override
   Widget build(BuildContext c) {
-    if (busy)
+    if (busy) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (funds.isNotEmpty) return HomeShell(funds: funds);
     return Scaffold(
         appBar: AppBar(title: const Text('Bắt đầu')),
@@ -423,11 +423,12 @@ class _Drawer extends StatelessWidget {
             title: const Text('Đăng xuất'),
             onTap: () async {
               await Api.logout();
-              if (c.mounted)
+              if (c.mounted) {
                 Navigator.pushAndRemoveUntil(
                     c,
                     MaterialPageRoute(builder: (_) => const Gate()),
                     (_) => false);
+              }
             })
       ])));
 }
@@ -497,8 +498,9 @@ class DashboardScreen extends StatelessWidget {
             future: Api.dashboard(s.id, n.year, n.month),
             builder: (c, x) {
               if (x.hasError) return ErrorView('${x.error}', s.refresh);
-              if (!x.hasData)
+              if (!x.hasData) {
                 return const Center(child: CircularProgressIndicator());
+              }
               final d = x.data;
               final cats = List<dynamic>.from(d['categories'] ?? []);
               return RefreshIndicator(
@@ -716,10 +718,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ? 'pageSize=200'
                           : 'type=$filter&pageSize=200'),
                   builder: (c, x) {
-                    if (x.hasError)
+                    if (x.hasError) {
                       return ErrorView('${x.error}', widget.s.refresh);
-                    if (!x.hasData)
+                    }
+                    if (!x.hasData) {
                       return const Center(child: CircularProgressIndicator());
+                    }
                     final items = List<dynamic>.from(x.data!['items'] ?? []);
                     return ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -797,9 +801,10 @@ class _TransactionEditorState extends State<TransactionEditor> {
       amount.text = '${e['amount'] ?? ''}';
       merchant.text = '${e['merchant'] ?? ''}';
       note.text = '${e['note'] ?? ''}';
-      if (e['transactionDate'] != null || e['date'] != null)
+      if (e['transactionDate'] != null || e['date'] != null) {
         date =
             DateTime.tryParse('${e['transactionDate'] ?? e['date']}') ?? date;
+      }
     }
     load();
   }
@@ -809,7 +814,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
     accounts = await Api.list(widget.s.id, 'accounts');
     cat = widget.editing?['categoryId']?.toString() ??
         cats
-            .cast<dynamic?>()
+            .cast<dynamic>()
             .firstWhere(
                 (e) =>
                     widget.suggestion != null &&
@@ -825,7 +830,9 @@ class _TransactionEditorState extends State<TransactionEditor> {
     if (cat == null ||
         account == null ||
         num.tryParse(amount.text.replaceAll('.', '').replaceAll(',', '.')) ==
-            null) return;
+            null) {
+      return;
+    }
     setState(() => busy = true);
     try {
       await Api.save(
@@ -846,9 +853,10 @@ class _TransactionEditorState extends State<TransactionEditor> {
           id: widget.editing?['id']?.toString());
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('$e')));
+      }
       setState(() => busy = false);
     }
   }
@@ -882,7 +890,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
                       labelText: 'Số tiền', suffixText: '₫')),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                  value: cat,
+                  initialValue: cat,
                   decoration: const InputDecoration(labelText: 'Danh mục'),
                   items: cats
                       .map((e) => DropdownMenuItem(
@@ -891,7 +899,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
                   onChanged: (v) => setState(() => cat = v)),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                  value: account,
+                  initialValue: account,
                   decoration:
                       const InputDecoration(labelText: 'Tài khoản tiền'),
                   items: accounts
@@ -934,13 +942,14 @@ class _TransactionEditorState extends State<TransactionEditor> {
                               MaterialPageRoute(
                                   builder: (_) => ReceiptScanScreen(widget.s)))
                           .then((v) {
-                        if (v is Map)
+                        if (v is Map && c.mounted) {
                           Navigator.pushReplacement(
                               c,
                               MaterialPageRoute(
                                   builder: (_) => TransactionEditor(widget.s,
                                       suggestion:
                                           Map<String, dynamic>.from(v))));
+                        }
                       }),
                   icon: const Icon(Icons.document_scanner),
                   label: const Text('Quét hóa đơn bằng Gemini AI')),
@@ -976,8 +985,9 @@ class ReportsScreen extends StatelessWidget {
             future: Api.request('GET',
                 '/api/funds/${s.id}/reports?from=${from.toIso8601String()}&to=${to.toIso8601String()}'),
             builder: (c, x) {
-              if (!x.hasData)
+              if (!x.hasData) {
                 return const Center(child: CircularProgressIndicator());
+              }
               final d = x.data;
               return ListView(padding: const EdgeInsets.all(14), children: [
                 SegmentedButton(segments: [
@@ -1126,9 +1136,10 @@ class MoreScreen extends StatelessWidget {
                   c, MaterialPageRoute(builder: (_) => ReceiptScanScreen(s)))),
           Menu(Icons.sync, 'Đồng bộ dữ liệu', () async {
             final n = await Api.syncQueue();
-            if (c.mounted)
+            if (c.mounted) {
               ScaffoldMessenger.of(c)
                   .showSnackBar(SnackBar(content: Text('Đã đồng bộ $n mục')));
+            }
           }),
           Menu(
               Icons.backup_outlined,
@@ -1200,8 +1211,9 @@ class MembersScreen extends StatelessWidget {
       body: FutureBuilder<List<dynamic>>(
           future: Api.list(s.id, 'members'),
           builder: (c, x) {
-            if (!x.hasData)
+            if (!x.hasData) {
               return const Center(child: CircularProgressIndicator());
+            }
             return ListView(
                 padding: const EdgeInsets.all(14),
                 children: x.data!
@@ -1309,8 +1321,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   future:
                       Api.list(widget.s.id, 'categories', query: 'type=$type'),
                   builder: (c, x) {
-                    if (!x.hasData)
+                    if (!x.hasData) {
                       return const Center(child: CircularProgressIndicator());
+                    }
                     return ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         children: [
@@ -1366,8 +1379,9 @@ class SimpleResourceScreen extends StatelessWidget {
       body: FutureBuilder<List<dynamic>>(
           future: Api.list(s.id, resource),
           builder: (c, x) {
-            if (!x.hasData)
+            if (!x.hasData) {
               return const Center(child: CircularProgressIndicator());
+            }
             return ListView(
                 padding: const EdgeInsets.all(14),
                 children: x.data!
@@ -1394,12 +1408,14 @@ class BudgetScreen extends StatelessWidget {
             future: Api.list(s.id, 'budgets',
                 query: 'year=${n.year}&month=${n.month}'),
             builder: (c, x) {
-              if (!x.hasData)
+              if (!x.hasData) {
                 return const Center(child: CircularProgressIndicator());
-              if (x.data!.isEmpty)
+              }
+              if (x.data!.isEmpty) {
                 return const Center(
                     child:
                         Text('Chưa đặt ngân sách. Hãy thêm từ danh mục chi.'));
+              }
               return ListView(
                   padding: const EdgeInsets.all(14),
                   children: x.data!.map((e) {
@@ -1435,8 +1451,9 @@ class RemindersScreen extends StatelessWidget {
       body: FutureBuilder<List<dynamic>>(
           future: Api.list(s.id, 'reminders'),
           builder: (c, x) {
-            if (!x.hasData)
+            if (!x.hasData) {
               return const Center(child: CircularProgressIndicator());
+            }
             return ListView(padding: const EdgeInsets.all(14), children: [
               ...x.data!.map((e) => Card(
                   child: ListTile(
@@ -1607,9 +1624,10 @@ class BackupScreen extends StatelessWidget {
                 title: const Text('Đồng bộ dữ liệu đang chờ'),
                 onTap: () async {
                   final n = await Api.syncQueue();
-                  if (c.mounted)
+                  if (c.mounted) {
                     ScaffoldMessenger.of(c).showSnackBar(
                         SnackBar(content: Text('Đã đồng bộ $n mục')));
+                  }
                 })),
         const Card(
             child: ListTile(
@@ -1634,10 +1652,12 @@ class _TrashScreenState extends State<TrashScreen> {
       body: FutureBuilder<List<dynamic>>(
           future: Api.list(widget.s.id, 'trash'),
           builder: (c, x) {
-            if (!x.hasData)
+            if (!x.hasData) {
               return const Center(child: CircularProgressIndicator());
-            if (x.data!.isEmpty)
+            }
+            if (x.data!.isEmpty) {
               return const Center(child: Text('Thùng rác trống'));
+            }
             return ListView(
                 padding: const EdgeInsets.all(14),
                 children: x.data!

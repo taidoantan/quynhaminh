@@ -36,7 +36,7 @@ public sealed class GeminiReceiptService(IHttpClientFactory clients, IConfigurat
         var prompt = "Đọc hóa đơn/chứng từ Việt Nam. Chỉ trả JSON đúng schema. type là income hoặc expense. amount là tổng tiền cuối cùng dạng số. date là yyyy-MM-dd hoặc null. category ngắn gọn. confidence từ 0 đến 1. warnings là mảng cảnh báo khi ảnh mờ, số tiền/ngày không chắc chắn hoặc có thể trùng.";
         var schema = new { type = "OBJECT", properties = new { type = new { type = "STRING", @enum = new[] { "income", "expense" } }, amount = new { type = "NUMBER" }, date = new { type = "STRING", nullable = true }, merchant = new { type = "STRING", nullable = true }, category = new { type = "STRING" }, note = new { type = "STRING" }, confidence = new { type = "NUMBER" }, warnings = new { type = "ARRAY", items = new { type = "STRING" } } }, required = new[] { "type", "amount", "category", "note", "confidence", "warnings" } };
         var body = new { contents = new[] { new { role = "user", parts = new object[] { new { text = prompt }, new { inline_data = new { mime_type = mime, data = Convert.ToBase64String(bytes) } } } } }, generationConfig = new { responseMimeType = "application/json", responseSchema = schema, temperature = 0.1 } };
-        var model = configuration["Gemini:Model"] ?? "gemini-3.5-flash";
+        var model = configuration["Gemini:Model"] ?? "gemini-3.6-flash";
         var request = new HttpRequestMessage(HttpMethod.Post, $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent") { Content = JsonContent.Create(body) }; request.Headers.Add("x-goog-api-key", key);
         HttpResponseMessage response;
         try { response = await clients.CreateClient().SendAsync(request, cancellationToken); }

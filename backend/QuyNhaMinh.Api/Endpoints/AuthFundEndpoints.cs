@@ -9,12 +9,12 @@ namespace QuyNhaMinh.Api.Endpoints;
 
 public static class AuthFundEndpoints {
     public static IEndpointRouteBuilder MapAuthAndFunds(this IEndpointRouteBuilder app) {
-        var auth = app.MapGroup("/api/auth").WithTags("Authentication");
+        var auth = app.MapGroup("/api/auth").WithTags("Authentication").RequireRateLimiting("api");
         auth.MapPost("/register", Register).AllowAnonymous();
         auth.MapPost("/login", Login).AllowAnonymous();
         auth.MapGet("/me", Me).RequireAuthorization();
 
-        var funds = app.MapGroup("/api/funds").WithTags("Funds").RequireAuthorization();
+        var funds = app.MapGroup("/api/funds").WithTags("Funds").RequireAuthorization().RequireRateLimiting("api");
         funds.MapGet("/", ListFunds);
         funds.MapPost("/", CreateFund);
         funds.MapPost("/join", JoinFund);

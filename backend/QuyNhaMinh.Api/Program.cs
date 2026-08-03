@@ -13,6 +13,7 @@ using QuyNhaMinh.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? builder.Configuration["Jwt:Key"] ?? "LOCAL-ONLY-CHANGE-THIS-KEY-32-BYTES";
+if (builder.Environment.IsProduction() && jwtKey.StartsWith("LOCAL-ONLY")) throw new InvalidOperationException("JWT_KEY must be configured in production.");
 builder.Configuration["Jwt:Key"] = jwtKey;
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 if (!string.IsNullOrWhiteSpace(databaseUrl)) builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(NormalizeDatabaseUrl(databaseUrl)));
@@ -57,7 +58,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", app = "Quỹ Nhà M�
 app.MapAuthAndFunds();
 app.MapFinance();
 app.MapDataFeatures();
-app.MapGroup("/api").RequireRateLimiting("api");
+
 
 await InitializeDatabase(app.Services);
 app.Run("http://0.0.0.0:5180");

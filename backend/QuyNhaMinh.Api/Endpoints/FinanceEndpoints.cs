@@ -8,7 +8,7 @@ namespace QuyNhaMinh.Api.Endpoints;
 
 public static class FinanceEndpoints {
     public static IEndpointRouteBuilder MapFinance(this IEndpointRouteBuilder app) {
-        var api = app.MapGroup("/api/funds/{fundId:guid}").RequireAuthorization();
+        var api = app.MapGroup("/api/funds/{fundId:guid}").RequireAuthorization().RequireRateLimiting("api");
         api.MapGet("/categories", Categories).WithTags("Categories");
         api.MapPost("/categories", CreateCategory).WithTags("Categories");
         api.MapPut("/categories/{id:guid}", UpdateCategory).WithTags("Categories");
