@@ -1,0 +1,12 @@
+.env.local
+*.log
+*.db
+*.db-shm
+*.db-wal
+**/bin/
+**/obj/
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins*
+quy_nha_minh_source.zip
+.idea/
