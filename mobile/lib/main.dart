@@ -69,7 +69,7 @@ class _GateState extends State<Gate> {
   Widget build(BuildContext c) => logged == null
       ? const Scaffold(body: Center(child: CircularProgressIndicator()))
       : logged!
-          ? const FundGate()
+          ? FundGate(onLogout: () => setState(() => logged = false))
           : AuthScreen(onDone: () => setState(() => logged = true));
 }
 
@@ -239,6 +239,11 @@ class _FundGateState extends State<FundGate> {
     }
   }
 
+  Future<void> logout() async {
+    await Api.logout();
+    if (mounted) widget.onLogout();
+  }
+
   Future<void> action(bool join) async {
     if (ctl.text.trim().isEmpty) return;
     setState(() => busy = true);
@@ -262,7 +267,13 @@ class _FundGateState extends State<FundGate> {
     }
     if (funds.isNotEmpty) return HomeShell(funds: funds);
     return Scaffold(
-        appBar: AppBar(title: const Text('Bắt đầu')),
+        appBar: AppBar(title: const Text('Bắt đầu'), actions: [
+          TextButton.icon(
+              onPressed: logout,
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('Đăng xuất')),
+          const SizedBox(width: 6)
+        ]),
         body: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
