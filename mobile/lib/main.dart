@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -8,9 +10,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'core/api.dart';
 
 bool _isNewerVersion(String remote, String local) {
-  List<int> parse(String v) => v.split('+').first.split('.').map((x) => int.tryParse(x) ?? 0).toList();
+  List<int> parse(String v) =>
+      v.split('+').first.split('.').map((x) => int.tryParse(x) ?? 0).toList();
   final a = parse(remote), b = parse(local);
-  for (var i = 0; i < 3; i++) { final x = i < a.length ? a[i] : 0, y = i < b.length ? b[i] : 0; if (x != y) return x > y; }
+  for (var i = 0; i < 3; i++) {
+    final x = i < a.length ? a[i] : 0, y = i < b.length ? b[i] : 0;
+    if (x != y) return x > y;
+  }
   return false;
 }
 
@@ -334,13 +340,31 @@ class _HomeShellState extends State<HomeShell> {
       final version = '${update['version'] ?? ''}';
       if (!_isNewerVersion(version, _appVersion) || !mounted) return;
       final url = Uri.tryParse('${update['url'] ?? ''}');
-      await showDialog<void>(context: context, builder: (c) => AlertDialog(
-        title: const Text('Có bản cập nhật mới'),
-        content: Text('Phiên bản $version đã sẵn sàng.\n${update['notes'] ?? ''}'),
-        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Để sau')), FilledButton(onPressed: url == null ? null : () async { Navigator.pop(c); await launchUrl(url, mode: LaunchMode.externalApplication); }, child: const Text('Tải và cài đặt'))],
-      ));
+      await showDialog<void>(
+          context: context,
+          builder: (c) => AlertDialog(
+                title: const Text('Có bản cập nhật mới'),
+                content: Text(
+                    'Phiên bản $version đã sẵn sàng.\n${update['notes'] ?? ''}'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(c),
+                      child: const Text('Để sau')),
+                  FilledButton(
+                      onPressed: url == null
+                          ? null
+                          : () async {
+                              Navigator.pop(c);
+                              await launchUrl(url,
+                                  mode: LaunchMode.externalApplication);
+                            },
+                      child: const Text('Tải và cài đặt'))
+                ],
+              ));
     } catch (_) {}
-  }  @override
+  }
+
+  @override
   void initState() {
     super.initState();
     s = AppState(widget.funds);
@@ -353,7 +377,12 @@ class _HomeShellState extends State<HomeShell> {
       listenable: s,
       builder: (c, _) => Scaffold(
           drawer: _Drawer(s),
-          body: IndexedStack(index: s.tab, children: [DashboardScreen(s), TransactionsScreen(s), ReportsScreen(s), MoreScreen(s)]),
+          body: IndexedStack(index: s.tab, children: [
+            DashboardScreen(s),
+            TransactionsScreen(s),
+            ReportsScreen(s),
+            MoreScreen(s)
+          ]),
           floatingActionButton: FloatingActionButton(
               onPressed: () => Navigator.push(
                       c,
@@ -371,10 +400,20 @@ class _HomeShellState extends State<HomeShell> {
               selectedIndex: s.tab,
               onDestinationSelected: s.go,
               destinations: const [
-                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Tổng quan'),
-                NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Giao dịch'),
-                NavigationDestination(icon: Icon(Icons.bar_chart_outlined), label: 'Báo cáo'),
-                NavigationDestination(icon: Icon(Icons.menu_outlined), selectedIcon: Icon(Icons.menu), label: 'Khác')
+                NavigationDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home),
+                    label: 'Tổng quan'),
+                NavigationDestination(
+                    icon: Icon(Icons.receipt_long_outlined),
+                    selectedIcon: Icon(Icons.receipt_long),
+                    label: 'Giao dịch'),
+                NavigationDestination(
+                    icon: Icon(Icons.bar_chart_outlined), label: 'Báo cáo'),
+                NavigationDestination(
+                    icon: Icon(Icons.menu_outlined),
+                    selectedIcon: Icon(Icons.menu),
+                    label: 'Khác')
               ])));
 }
 
@@ -777,7 +816,8 @@ class _SuggestionChips extends StatelessWidget {
   final String label;
   final List<String> values;
   final ValueChanged<String> onPick;
-  const _SuggestionChips({required this.label, required this.values, required this.onPick});
+  const _SuggestionChips(
+      {required this.label, required this.values, required this.onPick});
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
@@ -786,11 +826,18 @@ class _SuggestionChips extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: Theme.of(context).textTheme.labelSmall),
         const SizedBox(height: 3),
-        Wrap(spacing: 6, runSpacing: 2, children: values.map((v) => ActionChip(label: Text(v), onPressed: () => onPick(v))).toList()),
+        Wrap(
+            spacing: 6,
+            runSpacing: 2,
+            children: values
+                .map((v) =>
+                    ActionChip(label: Text(v), onPressed: () => onPick(v)))
+                .toList()),
       ]),
     );
   }
 }
+
 class TransactionEditor extends StatefulWidget {
   final AppState s;
   final Map<String, dynamic>? editing;
@@ -946,19 +993,31 @@ class _TransactionEditorState extends State<TransactionEditor> {
               const SizedBox(height: 12),
               TextField(
                   controller: merchant,
-                  decoration: const InputDecoration(labelText: 'Cửa hàng / nguồn thu')),
+                  decoration:
+                      const InputDecoration(labelText: 'Cửa hàng / nguồn thu')),
               _SuggestionChips(
                   label: 'Gợi ý đã nhập',
-                  values: history.map((e) => '${e['merchant'] ?? ''}'.trim()).where((v) => v.isNotEmpty).toSet().take(8).toList(),
+                  values: history
+                      .map((e) => '${e['merchant'] ?? ''}'.trim())
+                      .where((v) => v.isNotEmpty)
+                      .toSet()
+                      .take(8)
+                      .toList(),
                   onPick: (v) => setState(() => merchant.text = v)),
               const SizedBox(height: 12),
               TextField(
                   controller: note,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Mô tả (không bắt buộc)')),
+                  decoration: const InputDecoration(
+                      labelText: 'Mô tả (không bắt buộc)')),
               _SuggestionChips(
                   label: 'Mô tả đã dùng',
-                  values: history.map((e) => '${e['note'] ?? ''}'.trim()).where((v) => v.isNotEmpty).toSet().take(8).toList(),
+                  values: history
+                      .map((e) => '${e['note'] ?? ''}'.trim())
+                      .where((v) => v.isNotEmpty)
+                      .toSet()
+                      .take(8)
+                      .toList(),
                   onPick: (v) => setState(() => note.text = v)),
               const SizedBox(height: 18),
               OutlinedButton.icon(
@@ -1009,43 +1068,209 @@ class _ReportsScreenState extends State<ReportsScreen> {
   late Future<List<dynamic>> members;
   late Future<List<dynamic>> categories;
   @override
-  void initState() { super.initState(); members = Api.list(widget.s.id, 'members'); categories = Api.list(widget.s.id, 'categories'); }
+  void initState() {
+    super.initState();
+    members = Api.list(widget.s.id, 'members');
+    categories = Api.list(widget.s.id, 'categories');
+  }
+
   String get query {
     final n = DateTime.now();
-    final from = period == 0 ? DateTime(n.year,n.month,n.day) : period == 2 ? DateTime(n.year,1) : DateTime(n.year,n.month,1);
-    final to = period == 0 ? DateTime(n.year,n.month,n.day+1) : period == 2 ? DateTime(n.year+1,1) : DateTime(n.year,n.month+1,1);
+    final from = period == 0
+        ? DateTime(n.year, n.month, n.day)
+        : period == 2
+            ? DateTime(n.year, 1)
+            : DateTime(n.year, n.month, 1);
+    final to = period == 0
+        ? DateTime(n.year, n.month, n.day + 1)
+        : period == 2
+            ? DateTime(n.year + 1, 1)
+            : DateTime(n.year, n.month + 1, 1);
     return 'from=${Uri.encodeComponent(from.toUtc().toIso8601String())}&to=${Uri.encodeComponent(to.toUtc().toIso8601String())}${memberId == null ? '' : '&memberId=$memberId'}${categoryId == null ? '' : '&categoryId=$categoryId'}';
   }
+
   @override
   Widget build(BuildContext c) => Scaffold(
-    appBar: topBar(c, widget.s, 'Báo cáo'),
-    body: FutureBuilder<List<dynamic>>(
-      future: Future.wait([members, categories]),
-      builder: (c, m) {
-        if (!m.hasData) return const Center(child: CircularProgressIndicator());
-        return FutureBuilder<dynamic>(
-          key: ValueKey(query), future: Api.request('GET', '/api/funds/${widget.s.id}/reports?$query'),
-          builder: (c, x) {
-                    if (x.hasError) return ErrorView('${x.error}', () => setState(() {}));
-                    if (!x.hasData) return const Center(child: CircularProgressIndicator());
-                    final d=x.data, cats=List<dynamic>.from(d['byCategory'] ?? []), days=List<dynamic>.from(d['byDay'] ?? []);
-            return ListView(padding: const EdgeInsets.all(14), children: [
-              SegmentedButton<int>(segments: const [ButtonSegment(value:0,label:Text('Ngày')),ButtonSegment(value:1,label:Text('Tháng')),ButtonSegment(value:2,label:Text('Năm'))], selected:{period}, onSelectionChanged:(v)=>setState(()=>period=v.first)),
-              Card(child: Padding(padding: const EdgeInsets.all(10), child: Column(children:[
-                DropdownButtonFormField<String?>(initialValue: memberId, decoration: const InputDecoration(labelText:'Thành viên',border:InputBorder.none), items:[const DropdownMenuItem(value:null,child:Text('Tất cả thành viên')),...m.data![0].map((e)=>DropdownMenuItem(value:'${e['userId']}',child:Text('${e['displayName']}')))], onChanged:(v)=>setState(()=>memberId=v)),
-                DropdownButtonFormField<String?>(initialValue: categoryId, decoration: const InputDecoration(labelText:'Danh mục',border:InputBorder.none), items:[const DropdownMenuItem(value:null,child:Text('Tất cả danh mục')),...m.data![1].map((e)=>DropdownMenuItem(value:'${e['id']}',child:Text('${e['name']}')))], onChanged:(v)=>setState(()=>categoryId=v)),
-              ]))),
-              Row(children:[Expanded(child:MetricCard('Tổng thu',d['income'],green,Icons.arrow_downward)),const SizedBox(width:8),Expanded(child:MetricCard('Tổng chi',d['expense'],red,Icons.arrow_upward))]),
-              Card(child: Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('Số dư ${money(d['balance'])}',style:const TextStyle(fontWeight:FontWeight.bold,fontSize:18)),const SizedBox(height:12),...cats.take(7).map((e){final value=num.tryParse('${e['amount']}')??0; final total=num.tryParse('${d['expense']}')??0; return Padding(padding:const EdgeInsets.only(bottom:8),child:Row(children:[Expanded(child:Text('${e['name']}')),Text(money(value)),const SizedBox(width:8),SizedBox(width:80,child:LinearProgressIndicator(value:total==0?0:(value/total).clamp(0,1).toDouble()))]));}),if(cats.isEmpty)const Text('Chưa có giao dịch trong kỳ.')]))),
-              Card(child: Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Diễn biến thu chi',style:TextStyle(fontWeight:FontWeight.bold)),const SizedBox(height:8),...days.take(8).map((e)=>ListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text('${e['date']}'),trailing:Text('+${money(e['income'])}  /  -${money(e['expense'])}')))]))),
-              Row(children:[Expanded(child:OutlinedButton.icon(onPressed:()=>_showDownload(c,'Excel',Api.downloadUrl(widget.s.id,'export/excel',query:query)),icon:const Icon(Icons.table_chart),label:const Text('Xuất Excel'))),const SizedBox(width:8),Expanded(child:OutlinedButton.icon(onPressed:()=>_showDownload(c,'PDF',Api.downloadUrl(widget.s.id,'export/pdf',query:query)),icon:const Icon(Icons.picture_as_pdf),label:const Text('Xuất PDF')))]),
-            ]);
-          });
-      }),
-  );
+        appBar: topBar(c, widget.s, 'Báo cáo'),
+        body: FutureBuilder<List<dynamic>>(
+            future: Future.wait([members, categories]),
+            builder: (c, m) {
+              if (!m.hasData)
+                return const Center(child: CircularProgressIndicator());
+              return FutureBuilder<dynamic>(
+                  key: ValueKey(query),
+                  future: Api.request(
+                      'GET', '/api/funds/${widget.s.id}/reports?$query'),
+                  builder: (c, x) {
+                    if (x.hasError)
+                      return ErrorView('${x.error}', () => setState(() {}));
+                    if (!x.hasData)
+                      return const Center(child: CircularProgressIndicator());
+                    final d = x.data,
+                        cats = List<dynamic>.from(d['byCategory'] ?? []),
+                        days = List<dynamic>.from(d['byDay'] ?? []);
+                    return ListView(
+                        padding: const EdgeInsets.all(14),
+                        children: [
+                          SegmentedButton<int>(
+                              segments: const [
+                                ButtonSegment(value: 0, label: Text('Ngày')),
+                                ButtonSegment(value: 1, label: Text('Tháng')),
+                                ButtonSegment(value: 2, label: Text('Năm'))
+                              ],
+                              selected: {
+                                period
+                              },
+                              onSelectionChanged: (v) =>
+                                  setState(() => period = v.first)),
+                          Card(
+                              child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(children: [
+                                    DropdownButtonFormField<String?>(
+                                        initialValue: memberId,
+                                        decoration: const InputDecoration(
+                                            labelText: 'Thành viên',
+                                            border: InputBorder.none),
+                                        items: [
+                                          const DropdownMenuItem(
+                                              value: null,
+                                              child: Text('Tất cả thành viên')),
+                                          ...m.data![0].map((e) =>
+                                              DropdownMenuItem(
+                                                  value: '${e['userId']}',
+                                                  child: Text(
+                                                      '${e['displayName']}')))
+                                        ],
+                                        onChanged: (v) =>
+                                            setState(() => memberId = v)),
+                                    DropdownButtonFormField<String?>(
+                                        initialValue: categoryId,
+                                        decoration: const InputDecoration(
+                                            labelText: 'Danh mục',
+                                            border: InputBorder.none),
+                                        items: [
+                                          const DropdownMenuItem(
+                                              value: null,
+                                              child: Text('Tất cả danh mục')),
+                                          ...m.data![1].map((e) =>
+                                              DropdownMenuItem(
+                                                  value: '${e['id']}',
+                                                  child: Text('${e['name']}')))
+                                        ],
+                                        onChanged: (v) =>
+                                            setState(() => categoryId = v)),
+                                  ]))),
+                          Row(children: [
+                            Expanded(
+                                child: MetricCard('Tổng thu', d['income'],
+                                    green, Icons.arrow_downward)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                                child: MetricCard('Tổng chi', d['expense'], red,
+                                    Icons.arrow_upward))
+                          ]),
+                          Card(
+                              child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Số dư ${money(d['balance'])}',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18)),
+                                        const SizedBox(height: 12),
+                                        ...cats.take(7).map((e) {
+                                          final value =
+                                              num.tryParse('${e['amount']}') ??
+                                                  0;
+                                          final total =
+                                              num.tryParse('${d['expense']}') ??
+                                                  0;
+                                          return Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 8),
+                                              child: Row(children: [
+                                                Expanded(
+                                                    child:
+                                                        Text('${e['name']}')),
+                                                Text(money(value)),
+                                                const SizedBox(width: 8),
+                                                SizedBox(
+                                                    width: 80,
+                                                    child:
+                                                        LinearProgressIndicator(
+                                                            value: total == 0
+                                                                ? 0
+                                                                : (value /
+                                                                        total)
+                                                                    .clamp(0, 1)
+                                                                    .toDouble()))
+                                              ]));
+                                        }),
+                                        if (cats.isEmpty)
+                                          const Text(
+                                              'Chưa có giao dịch trong kỳ.')
+                                      ]))),
+                          Card(
+                              child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Diễn biến thu chi',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 8),
+                                        ...days.take(8).map((e) => ListTile(
+                                            dense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                            title: Text('${e['date']}'),
+                                            trailing: Text(
+                                                '+${money(e['income'])}  /  -${money(e['expense'])}')))
+                                      ]))),
+                          Row(children: [
+                            Expanded(
+                                child: OutlinedButton.icon(
+                                    onPressed: () => _showDownload(
+                                        c,
+                                        'Excel',
+                                        Api.downloadUrl(
+                                            widget.s.id, 'export/excel',
+                                            query: query)),
+                                    icon: const Icon(Icons.table_chart),
+                                    label: const Text('Xuất Excel'))),
+                            const SizedBox(width: 8),
+                            Expanded(
+                                child: OutlinedButton.icon(
+                                    onPressed: () => _showDownload(
+                                        c,
+                                        'PDF',
+                                        Api.downloadUrl(
+                                            widget.s.id, 'export/pdf',
+                                            query: query)),
+                                    icon: const Icon(Icons.picture_as_pdf),
+                                    label: const Text('Xuất PDF')))
+                          ]),
+                        ]);
+                  });
+            }),
+      );
 }
 
-void _showDownload(BuildContext c, String kind, String url) => showDialog(context:c,builder:(_)=>AlertDialog(title:Text('Xuất $kind'),content:SelectableText('Đường dẫn tải bảo mật:\n$url\n\nTệp yêu cầu phiên đăng nhập hiện tại.'),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Đóng'))]));
+void _showDownload(BuildContext c, String kind, String url) => showDialog(
+    context: c,
+    builder: (_) => AlertDialog(
+            title: Text('Xuất $kind'),
+            content: SelectableText(
+                'Đường dẫn tải bảo mật:\n$url\n\nTệp yêu cầu phiên đăng nhập hiện tại.'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(c), child: const Text('Đóng'))
+            ]));
 
 class MoreScreen extends StatelessWidget {
   final AppState s;
@@ -1133,11 +1358,29 @@ class MoreScreen extends StatelessWidget {
                   applicationName: 'Quỹ Nhà Mình',
                   applicationVersion: '2.0.0')),
           Menu(Icons.logout, 'Đăng xuất', () async {
-            final ok = await showDialog<bool>(context: c, builder: (d) => AlertDialog(
-              title: const Text('Đăng xuất?'), content: const Text('Bạn sẽ cần đăng nhập lại để dùng ứng dụng.'),
-              actions: [TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Hủy')), FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Đăng xuất'))],
-            ));
-            if (ok == true) { await Api.logout(); if (c.mounted) Navigator.pushAndRemoveUntil(c, MaterialPageRoute(builder: (_) => const Gate()), (_) => false); }
+            final ok = await showDialog<bool>(
+                context: c,
+                builder: (d) => AlertDialog(
+                      title: const Text('Đăng xuất?'),
+                      content: const Text(
+                          'Bạn sẽ cần đăng nhập lại để dùng ứng dụng.'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(d, false),
+                            child: const Text('Hủy')),
+                        FilledButton(
+                            onPressed: () => Navigator.pop(d, true),
+                            child: const Text('Đăng xuất'))
+                      ],
+                    ));
+            if (ok == true) {
+              await Api.logout();
+              if (c.mounted)
+                Navigator.pushAndRemoveUntil(
+                    c,
+                    MaterialPageRoute(builder: (_) => const Gate()),
+                    (_) => false);
+            }
           })
         ])
       ]));
@@ -1218,38 +1461,73 @@ class MembersScreen extends StatelessWidget {
 class InviteScreen extends StatelessWidget {
   final AppState s;
   const InviteScreen(this.s, {super.key});
+
+  String get _code => '${s.fund['inviteCode']}';
+  String get _message =>
+      'Mời bạn tham gia quỹ "${s.fund['name']}" trên ứng dụng Quỹ Nhà Mình.\n\nMã mời: $_code\n\nMở ứng dụng, vào Cài đặt → Mã mời quỹ → Nhập mã mời để tham gia.';
+
+  Future<void> _share(BuildContext context) async {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(text: _message, subject: 'Lời mời tham gia Quỹ Nhà Mình'),
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Chưa thể mở danh sách ứng dụng để chia sẻ.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _copy(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: _code));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã sao chép mã mời.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext c) => Scaffold(
-      appBar: AppBar(title: const Text('Mã mời quỹ')),
-      body: Center(
-          child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  shrinkWrap: true,
-                  children: [
+      appBar: AppBar(title: const Text('Mời thành viên')),
+      body: SafeArea(
+          child: Center(
+              child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: ListView(padding: const EdgeInsets.all(20), children: [
                     Card(
                         child: Padding(
                             padding: const EdgeInsets.all(28),
                             child: Column(children: [
+                              const Icon(Icons.group_add_rounded,
+                                  size: 48, color: blue),
+                              const SizedBox(height: 16),
                               const Text('Mã mời của quỹ',
                                   style: TextStyle(color: Colors.grey)),
-                              const SizedBox(height: 16),
-                              SelectableText('${s.fund['inviteCode']}',
+                              const SizedBox(height: 10),
+                              SelectableText(_code,
                                   style: const TextStyle(
                                       color: blue,
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold)),
                               const SizedBox(height: 12),
                               const Text(
-                                  'Chia sẻ mã này cho người thân để tham gia quỹ',
+                                  'Gửi lời mời cho người thân. Họ chỉ cần mở ứng dụng và nhập mã này để tham gia quỹ.',
                                   textAlign: TextAlign.center)
                             ]))),
                     const SizedBox(height: 14),
                     FilledButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.share),
-                        label: const Text('Chia sẻ mã')),
+                        onPressed: () => _share(c),
+                        icon: const Icon(Icons.send_rounded),
+                        label: const Text('Gửi lời mời')),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                        onPressed: () => _copy(c),
+                        icon: const Icon(Icons.copy_rounded),
+                        label: const Text('Sao chép mã mời')),
                     const SizedBox(height: 24),
                     const Text('Tham gia quỹ',
                         style: TextStyle(fontWeight: FontWeight.bold)),
@@ -1259,7 +1537,7 @@ class InviteScreen extends StatelessWidget {
                         'Nhập mã mời để tham gia quỹ khác',
                         () => showDialog(
                             context: c, builder: (_) => JoinFundDialog(s)))
-                  ]))));
+                  ])))));
 }
 
 IconData _categoryIcon(String icon, String type) {
@@ -1277,12 +1555,18 @@ IconData _categoryIcon(String icon, String type) {
     'volunteer_activism': Icons.volunteer_activism_rounded,
     'workspace_premium': Icons.workspace_premium_rounded,
   };
-  return icons[icon] ?? (type == 'income' ? Icons.savings_rounded : Icons.more_horiz_rounded);
+  return icons[icon] ??
+      (type == 'income' ? Icons.savings_rounded : Icons.more_horiz_rounded);
 }
 
 Color _categoryColor(String value) {
-  try { return Color(int.parse(value.replaceFirst('#', '0xff'))); } catch (_) { return blue; }
+  try {
+    return Color(int.parse(value.replaceFirst('#', '0xff')));
+  } catch (_) {
+    return blue;
+  }
 }
+
 class CategoriesScreen extends StatefulWidget {
   final AppState s;
   const CategoriesScreen(this.s, {super.key});
@@ -1296,39 +1580,52 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Widget build(BuildContext c) {
     return Scaffold(
         appBar: AppBar(title: const Text('Danh mục')),
-        floatingActionButton: FloatingActionButton.extended(onPressed: () => _newCategory(c), icon: const Icon(Icons.add), label: const Text('Thêm danh mục')),
-        body: SafeArea(top: false, child: Column(children: [
-          Padding(
-              padding: const EdgeInsets.all(14),
-              child: SegmentedButton<String>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: 'income', label: Text('Thu')),
-                    ButtonSegment(value: 'expense', label: Text('Chi'))
-                  ],
-                  selected: {type},
-                  onSelectionChanged: (v) => setState(() => type = v.first))),
-          Expanded(
-              child: FutureBuilder<List<dynamic>>(
-                  future:
-                      Api.list(widget.s.id, 'categories', query: 'type=$type'),
-                  builder: (c, x) {
-                    if (!x.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    return ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        children: [
-                          for (final e in x.data!)
-                            Card(
-                                child: ListTile(
-                                    leading: CircleAvatar(
-                                        backgroundColor: _categoryColor('${e['color'] ?? '#1769E0'}').withValues(alpha: .14),
-                                        child: Icon(_categoryIcon('${e['icon'] ?? ''}', type), color: _categoryColor('${e['color'] ?? '#1769E0'}'))),
-                                    title: Text('${e['name']}'))),
-                        ]);
-                  }))
-        ])));
+        floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _newCategory(c),
+            icon: const Icon(Icons.add),
+            label: const Text('Thêm danh mục')),
+        body: SafeArea(
+            top: false,
+            child: Column(children: [
+              Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: SegmentedButton<String>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(value: 'income', label: Text('Thu')),
+                        ButtonSegment(value: 'expense', label: Text('Chi'))
+                      ],
+                      selected: {type},
+                      onSelectionChanged: (v) =>
+                          setState(() => type = v.first))),
+              Expanded(
+                  child: FutureBuilder<List<dynamic>>(
+                      future: Api.list(widget.s.id, 'categories',
+                          query: 'type=$type'),
+                      builder: (c, x) {
+                        if (!x.hasData) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+                        return ListView(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            children: [
+                              for (final e in x.data!)
+                                Card(
+                                    child: ListTile(
+                                        leading: CircleAvatar(
+                                            backgroundColor: _categoryColor(
+                                                    '${e['color'] ?? '#1769E0'}')
+                                                .withValues(alpha: .14),
+                                            child: Icon(
+                                                _categoryIcon(
+                                                    '${e['icon'] ?? ''}', type),
+                                                color: _categoryColor(
+                                                    '${e['color'] ?? '#1769E0'}'))),
+                                        title: Text('${e['name']}'))),
+                            ]);
+                      }))
+            ])));
   }
 
   void _newCategory(BuildContext c) {
@@ -1389,11 +1686,15 @@ class _SimpleResourceScreenState extends State<SimpleResourceScreen> {
                                 child: Icon(Icons.account_balance_wallet)),
                             title: Text('${item['name']}'),
                             subtitle: Text('${item['type']}'),
-                            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text(money(item['balance']), style: const TextStyle(fontWeight: FontWeight.bold)),
+                            trailing:
+                                Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text(money(item['balance']),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
                               IconButton(
                                 tooltip: 'Xóa tài khoản',
-                                icon: const Icon(Icons.delete_outline, color: red),
+                                icon: const Icon(Icons.delete_outline,
+                                    color: red),
                                 onPressed: () => _deleteAccount(item),
                               ),
                             ]))))
@@ -1405,10 +1706,15 @@ class _SimpleResourceScreenState extends State<SimpleResourceScreen> {
         context: context,
         builder: (c) => AlertDialog(
               title: const Text('Xóa tài khoản?'),
-              content: Text('Xóa tài khoản đã chọn? Tài khoản đã có giao dịch không thể xóa để bảo toàn lịch sử.'),
+              content: Text(
+                  'Xóa tài khoản đã chọn? Tài khoản đã có giao dịch không thể xóa để bảo toàn lịch sử.'),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Hủy')),
-                FilledButton.tonal(onPressed: () => Navigator.pop(c, true), child: const Text('Xóa')),
+                TextButton(
+                    onPressed: () => Navigator.pop(c, false),
+                    child: const Text('Hủy')),
+                FilledButton.tonal(
+                    onPressed: () => Navigator.pop(c, true),
+                    child: const Text('Xóa')),
               ],
             ));
     if (confirmed != true || !mounted) return;
@@ -1416,9 +1722,12 @@ class _SimpleResourceScreenState extends State<SimpleResourceScreen> {
       await Api.remove(widget.s.id, 'accounts', '${item['id']}');
       if (mounted) setState(() {});
     } on ApiError catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
+
   Future<void> _addAccount() async {
     final name = TextEditingController();
     final balance = TextEditingController(text: '0');
@@ -1431,13 +1740,13 @@ class _SimpleResourceScreenState extends State<SimpleResourceScreen> {
                     content: Column(mainAxisSize: MainAxisSize.min, children: [
                       TextField(
                           controller: name,
-                          decoration:
-                              const InputDecoration(labelText: 'Tên tài khoản')),
+                          decoration: const InputDecoration(
+                              labelText: 'Tên tài khoản')),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
                           initialValue: type,
-                          decoration:
-                              const InputDecoration(labelText: 'Loại tài khoản'),
+                          decoration: const InputDecoration(
+                              labelText: 'Loại tài khoản'),
                           items: const [
                             DropdownMenuItem(
                                 value: 'cash', child: Text('Tiền mặt')),
@@ -1446,8 +1755,7 @@ class _SimpleResourceScreenState extends State<SimpleResourceScreen> {
                             DropdownMenuItem(
                                 value: 'ewallet', child: Text('Ví điện tử'))
                           ],
-                          onChanged: (value) =>
-                              setLocal(() => type = value!)),
+                          onChanged: (value) => setLocal(() => type = value!)),
                       const SizedBox(height: 10),
                       TextField(
                           controller: balance,
@@ -1590,8 +1898,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 }
 
-class RemindersScreen
- extends StatelessWidget {
+class RemindersScreen extends StatelessWidget {
   final AppState s;
   const RemindersScreen(this.s, {super.key});
   @override
