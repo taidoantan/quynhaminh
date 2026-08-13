@@ -125,7 +125,7 @@ class Api {
   static Future<Map<String, dynamic>> transactions(String fund,
           {String query = ''}) async =>
       Map<String, dynamic>.from(await _getCached('$fund-transactions-$query',
-          '/api/funds/$fund/transactions${query.isEmpty ? '' : '?$query'}'));
+          '/api/funds/$fund/transactions?${query.isEmpty ? 'page=1' : 'page=1&$query'}'));
   static Future<dynamic> save(
           String fund, String resource, Map<String, dynamic> body,
           {String? id}) =>

@@ -353,13 +353,7 @@ class _HomeShellState extends State<HomeShell> {
       listenable: s,
       builder: (c, _) => Scaffold(
           drawer: _Drawer(s),
-          body: IndexedStack(index: s.tab, children: [
-            DashboardScreen(s),
-            TransactionsScreen(s),
-            const SizedBox(),
-            ReportsScreen(s),
-            MoreScreen(s)
-          ]),
+          body: IndexedStack(index: s.tab, children: [DashboardScreen(s), TransactionsScreen(s), ReportsScreen(s), MoreScreen(s)]),
           floatingActionButton: FloatingActionButton(
               onPressed: () => Navigator.push(
                       c,
