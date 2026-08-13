@@ -4,7 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'core/api.dart';
+
+bool _isNewerVersion(String remote, String local) {
+  List<int> parse(String v) => v.split('+').first.split('.').map((x) => int.tryParse(x) ?? 0).toList();
+  final a = parse(remote), b = parse(local);
+  for (var i = 0; i < 3; i++) { final x = i < a.length ? a[i] : 0, y = i < b.length ? b[i] : 0; if (x != y) return x > y; }
+  return false;
+}
 
 const blue = Color(0xff1769e0),
     bg = Color(0xfff5f8fd),
@@ -315,13 +323,29 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
+const _appVersion = '2.0.0';
+
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
-  @override
+
+  Future<void> _checkForUpdate() async {
+    try {
+      final update = await Api.appUpdate();
+      final version = '${update['version'] ?? ''}';
+      if (!_isNewerVersion(version, _appVersion) || !mounted) return;
+      final url = Uri.tryParse('${update['url'] ?? ''}');
+      await showDialog<void>(context: context, builder: (c) => AlertDialog(
+        title: const Text('Có bản cập nhật mới'),
+        content: Text('Phiên bản $version đã sẵn sàng.\n${update['notes'] ?? ''}'),
+        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Để sau')), FilledButton(onPressed: url == null ? null : () async { Navigator.pop(c); await launchUrl(url, mode: LaunchMode.externalApplication); }, child: const Text('Tải và cài đặt'))],
+      ));
+    } catch (_) {}
+  }  @override
   void initState() {
     super.initState();
     s = AppState(widget.funds);
     Api.syncQueue();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
   }
 
   @override

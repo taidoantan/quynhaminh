@@ -83,6 +83,9 @@ class Api {
     }
   }
 
+  static Future<Map<String, dynamic>> appUpdate() async =>
+      Map<String, dynamic>.from(await request('GET', '/app-update'));
+
   static Future<Map<String, dynamic>> auth(
       bool register, String name, String email, String password) async {
     final x = await request(
