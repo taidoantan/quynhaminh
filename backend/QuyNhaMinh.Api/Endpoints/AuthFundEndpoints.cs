@@ -43,7 +43,7 @@ public static class AuthFundEndpoints {
     private static async Task<IResult> Login(LoginRequest x, AppDb db, PasswordService passwords, TokenService tokens) {
         var email = x.Email.Trim().ToLowerInvariant();
         var user = await db.Users.SingleOrDefaultAsync(u => u.Email == email);
-        if (user is null || !passwords.Verify(x.Password, user.PasswordHash)) return Results.Unauthorized();
+        if (user is null || !passwords.Verify(x.Password, user.PasswordHash)) return Results.Json(new { message = "Email hoặc mật khẩu không đúng." }, statusCode: StatusCodes.Status401Unauthorized);
         return Results.Ok(new AuthResponse(tokens.Create(user), new { user.Id, user.DisplayName, user.Email }));
     }
 
