@@ -1014,7 +1014,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final n = DateTime.now();
     final from = period == 0 ? DateTime(n.year,n.month,n.day) : period == 2 ? DateTime(n.year,1) : DateTime(n.year,n.month,1);
     final to = period == 0 ? DateTime(n.year,n.month,n.day+1) : period == 2 ? DateTime(n.year+1,1) : DateTime(n.year,n.month+1,1);
-    return 'from=${Uri.encodeComponent(from.toIso8601String())}&to=${Uri.encodeComponent(to.toIso8601String())}${memberId == null ? '' : '&memberId=$memberId'}${categoryId == null ? '' : '&categoryId=$categoryId'}';
+    return 'from=${Uri.encodeComponent(from.toUtc().toIso8601String())}&to=${Uri.encodeComponent(to.toUtc().toIso8601String())}${memberId == null ? '' : '&memberId=$memberId'}${categoryId == null ? '' : '&categoryId=$categoryId'}';
   }
   @override
   Widget build(BuildContext c) => Scaffold(
