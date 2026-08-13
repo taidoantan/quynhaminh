@@ -341,7 +341,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.2';
+const _appVersion = '2.0.3';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
