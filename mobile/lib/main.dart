@@ -83,21 +83,64 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final name = TextEditingController(),
       email = TextEditingController(),
-      pass = TextEditingController();
-  bool register = false, busy = false, hide = true;
-  String? error;
+      pass = TextEditingController(),
+      code = TextEditingController(),
+      confirm = TextEditingController();
+  bool register = false,
+      reset = false,
+      codeSent = false,
+      busy = false,
+      hide = true;
+  String? error, notice;
   Future<void> submit() async {
-    setState(() => busy = true);
+    setState(() {
+      busy = true;
+      error = null;
+      notice = null;
+    });
     try {
-      await Api.auth(register, name.text, email.text, pass.text);
-      widget.onDone();
+      if (reset) {
+        if (!codeSent) {
+          await Api.forgotPassword(email.text);
+          setState(() {
+            codeSent = true;
+            notice =
+                'Nếu email đã đăng ký, mã xác nhận sẽ được gửi trong ít phút.';
+          });
+        } else {
+          if (pass.text != confirm.text)
+            throw ApiError('Mật khẩu xác nhận không khớp.', 400);
+          await Api.resetPassword(email.text, code.text, pass.text);
+          setState(() {
+            reset = false;
+            codeSent = false;
+            pass.clear();
+            confirm.clear();
+            code.clear();
+            notice = 'Đã đặt lại mật khẩu. Hãy đăng nhập.';
+          });
+        }
+      } else {
+        await Api.auth(register, name.text, email.text, pass.text);
+        widget.onDone();
+      }
+    } on ApiError catch (e) {
+      if (mounted) setState(() => error = e.message);
     } catch (e) {
-      setState(() => error = '$e');
+      if (mounted) setState(() => error = '$e');
     } finally {
       if (mounted) setState(() => busy = false);
     }
   }
 
+  void showReset() => setState(() {
+        reset = true;
+        register = false;
+        codeSent = false;
+        error = null;
+        notice = null;
+        pass.clear();
+      });
   @override
   Widget build(BuildContext c) => Scaffold(
       body: LayoutBuilder(
@@ -134,11 +177,23 @@ class _AuthScreenState extends State<AuthScreen> {
                                                 Radius.circular(26))),
                                         child: const _Brand()),
                                   const SizedBox(height: 24),
-                                  Text(register ? 'Đăng ký' : 'Đăng nhập',
+                                  Text(
+                                      reset
+                                          ? (codeSent
+                                              ? 'Đặt lại mật khẩu'
+                                              : 'Quên mật khẩu')
+                                          : (register
+                                              ? 'Đăng ký'
+                                              : 'Đăng nhập'),
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w800,
                                           fontSize: 22)),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 10),
+                                  if (reset)
+                                    const Text(
+                                        'Nhập email đã đăng ký để nhận mã xác nhận.',
+                                        textAlign: TextAlign.center),
+                                  const SizedBox(height: 16),
                                   if (register)
                                     TextField(
                                         controller: name,
@@ -146,34 +201,64 @@ class _AuthScreenState extends State<AuthScreen> {
                                             labelText: 'Họ và tên',
                                             prefixIcon:
                                                 Icon(Icons.person_outline))),
-                                  const SizedBox(height: 12),
+                                  if (register) const SizedBox(height: 12),
                                   TextField(
                                       controller: email,
+                                      keyboardType: TextInputType.emailAddress,
                                       decoration: const InputDecoration(
                                           labelText: 'Email',
                                           prefixIcon:
                                               Icon(Icons.email_outlined))),
                                   const SizedBox(height: 12),
-                                  TextField(
-                                      controller: pass,
-                                      obscureText: hide,
-                                      decoration: InputDecoration(
-                                          labelText: 'Mật khẩu',
-                                          prefixIcon:
-                                              const Icon(Icons.lock_outline),
-                                          suffixIcon: IconButton(
-                                              onPressed: () =>
-                                                  setState(() => hide = !hide),
-                                              icon: Icon(hide
-                                                  ? Icons.visibility_outlined
-                                                  : Icons
-                                                      .visibility_off_outlined)))),
+                                  if (!reset || codeSent) ...[
+                                    if (reset)
+                                      TextField(
+                                          controller: code,
+                                          keyboardType: TextInputType.number,
+                                          decoration: const InputDecoration(
+                                              labelText: 'Mã gồm 6 số',
+                                              prefixIcon:
+                                                  Icon(Icons.pin_outlined))),
+                                    if (reset) const SizedBox(height: 12),
+                                    TextField(
+                                        controller: pass,
+                                        obscureText: hide,
+                                        decoration: InputDecoration(
+                                            labelText: reset
+                                                ? 'Mật khẩu mới'
+                                                : 'Mật khẩu',
+                                            prefixIcon:
+                                                const Icon(Icons.lock_outline),
+                                            suffixIcon: IconButton(
+                                                onPressed: () => setState(
+                                                    () => hide = !hide),
+                                                icon: Icon(hide
+                                                    ? Icons.visibility_outlined
+                                                    : Icons
+                                                        .visibility_off_outlined)))),
+                                    if (reset) const SizedBox(height: 12),
+                                    if (reset)
+                                      TextField(
+                                          controller: confirm,
+                                          obscureText: hide,
+                                          decoration: const InputDecoration(
+                                              labelText:
+                                                  'Xác nhận mật khẩu mới',
+                                              prefixIcon:
+                                                  Icon(Icons.lock_outline))),
+                                  ],
                                   if (error != null)
                                     Padding(
                                         padding: const EdgeInsets.all(10),
                                         child: Text(error!,
                                             style:
                                                 const TextStyle(color: red))),
+                                  if (notice != null)
+                                    Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Text(notice!,
+                                            style:
+                                                const TextStyle(color: green))),
                                   const SizedBox(height: 16),
                                   SizedBox(
                                       width: double.infinity,
@@ -182,15 +267,33 @@ class _AuthScreenState extends State<AuthScreen> {
                                           onPressed: busy ? null : submit,
                                           child: Text(busy
                                               ? 'Đang xử lý...'
-                                              : register
-                                                  ? 'Tạo tài khoản'
-                                                  : 'Đăng nhập'))),
+                                              : reset
+                                                  ? (codeSent
+                                                      ? 'Đặt lại mật khẩu'
+                                                      : 'Gửi mã qua email')
+                                                  : (register
+                                                      ? 'Tạo tài khoản'
+                                                      : 'Đăng nhập')))),
+                                  if (!reset && !register)
+                                    TextButton(
+                                        onPressed: showReset,
+                                        child: const Text('Quên mật khẩu?')),
                                   TextButton(
-                                      onPressed: () =>
-                                          setState(() => register = !register),
-                                      child: Text(register
-                                          ? 'Đã có tài khoản? Đăng nhập'
-                                          : 'Chưa có tài khoản? Đăng ký'))
+                                      onPressed: () => setState(() {
+                                            if (reset) {
+                                              reset = false;
+                                              codeSent = false;
+                                            } else {
+                                              register = !register;
+                                            }
+                                            error = null;
+                                            notice = null;
+                                          }),
+                                      child: Text(reset
+                                          ? 'Quay lại Đăng nhập'
+                                          : (register
+                                              ? 'Đã có tài khoản? Đăng nhập'
+                                              : 'Chưa có tài khoản? Đăng ký')))
                                 ])))))
               ])));
 }

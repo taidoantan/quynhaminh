@@ -7,6 +7,8 @@ public static class SupabaseSchema {
     public static Task EnsureAsync(AppDb db) => db.Database.ExecuteSqlRawAsync("""
 CREATE TABLE IF NOT EXISTS "Users" ("Id" uuid PRIMARY KEY, "DisplayName" text NOT NULL, "Email" text NOT NULL, "PasswordHash" text NOT NULL, "CreatedAt" timestamptz NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email");
+CREATE TABLE IF NOT EXISTS "PasswordResets" ("Id" uuid PRIMARY KEY, "UserId" uuid NOT NULL REFERENCES "Users"("Id") ON DELETE CASCADE, "CodeHash" text NOT NULL, "ExpiresAt" timestamptz NOT NULL, "UsedAt" timestamptz NULL, "CreatedAt" timestamptz NOT NULL);
+CREATE INDEX IF NOT EXISTS "IX_PasswordResets_UserId_ExpiresAt" ON "PasswordResets" ("UserId", "ExpiresAt");
 CREATE TABLE IF NOT EXISTS "Funds" ("Id" uuid PRIMARY KEY, "Name" text NOT NULL, "InviteCode" text NOT NULL, "CreatedBy" uuid NOT NULL, "CreatedAt" timestamptz NOT NULL, "IsDeleted" boolean NOT NULL, "DeletedAt" timestamptz NULL, "DeletedBy" uuid NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Funds_InviteCode" ON "Funds" ("InviteCode");
 CREATE TABLE IF NOT EXISTS "FundMembers" ("Id" uuid PRIMARY KEY, "FundId" uuid NOT NULL REFERENCES "Funds"("Id") ON DELETE CASCADE, "UserId" uuid NOT NULL REFERENCES "Users"("Id") ON DELETE CASCADE, "Role" text NOT NULL, "JoinedAt" timestamptz NOT NULL);

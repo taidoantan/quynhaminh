@@ -5,6 +5,7 @@ namespace QuyNhaMinh.Api.Data;
 
 public sealed class AppDb(DbContextOptions<AppDb> options) : DbContext(options) {
     public DbSet<QuyNhaMinh.Api.Domain.User> Users => Set<QuyNhaMinh.Api.Domain.User>();
+    public DbSet<PasswordReset> PasswordResets => Set<PasswordReset>();
     public DbSet<Fund> Funds => Set<Fund>();
     public DbSet<FundMember> FundMembers => Set<FundMember>();
     public DbSet<FundInvitation> FundInvitations => Set<FundInvitation>();
@@ -19,6 +20,7 @@ public sealed class AppDb(DbContextOptions<AppDb> options) : DbContext(options) 
     protected override void OnModelCreating(ModelBuilder b) {
         b.Entity<QuyNhaMinh.Api.Domain.User>().HasIndex(x => x.Email).IsUnique();
         b.Entity<Fund>().HasIndex(x => x.InviteCode).IsUnique();
+        b.Entity<PasswordReset>().HasIndex(x => new { x.UserId, x.ExpiresAt });
         b.Entity<FundMember>().HasIndex(x => new { x.FundId, x.UserId }).IsUnique();
         b.Entity<FundInvitation>().HasIndex(x => new { x.FundId, x.RecipientUserId }).IsUnique();
         b.Entity<QuyNhaMinh.Api.Domain.Category>().HasIndex(x => new { x.FundId, x.Type, x.Name }).IsUnique();

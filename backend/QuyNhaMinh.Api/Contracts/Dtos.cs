@@ -2,6 +2,8 @@ namespace QuyNhaMinh.Api.Contracts;
 
 public sealed record RegisterRequest(string DisplayName, string Email, string Password);
 public sealed record LoginRequest(string Email, string Password);
+public sealed record ForgotPasswordRequest(string Email);
+public sealed record ResetPasswordRequest(string Email, string Code, string Password);
 public sealed record AuthResponse(string Token, object User);
 public sealed record CreateFundRequest(string Name);
 public sealed record JoinFundRequest(string InviteCode);

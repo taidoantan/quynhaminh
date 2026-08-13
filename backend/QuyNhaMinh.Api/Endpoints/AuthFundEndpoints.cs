@@ -12,6 +12,8 @@ public static class AuthFundEndpoints {
         var auth = app.MapGroup("/api/auth").WithTags("Authentication").RequireRateLimiting("api");
         auth.MapPost("/register", Register).AllowAnonymous();
         auth.MapPost("/login", Login).AllowAnonymous();
+        auth.MapPost("/forgot-password", ForgotPassword).AllowAnonymous();
+        auth.MapPost("/reset-password", ResetPassword).AllowAnonymous();
         auth.MapGet("/me", Me).RequireAuthorization();
         auth.MapGet("/invitations", ListDirectInvitations).RequireAuthorization();
         auth.MapPost("/invitations/{invitationId:guid}/accept", AcceptDirectInvitation).RequireAuthorization();
@@ -47,6 +49,33 @@ public static class AuthFundEndpoints {
         return Results.Ok(new AuthResponse(tokens.Create(user), new { user.Id, user.DisplayName, user.Email }));
     }
 
+    private static async Task<IResult> ForgotPassword(ForgotPasswordRequest x, AppDb db, PasswordService passwords, EmailService email) {
+        var address = x.Email.Trim().ToLowerInvariant();
+        if (!address.Contains('@')) return Results.BadRequest(new { message = "Email không hợp lệ." });
+        if (!email.IsConfigured) return Results.Json(new { message = "Chức năng gửi email chưa được thiết lập." }, statusCode: StatusCodes.Status503ServiceUnavailable);
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Email == address);
+        if (user is not null) {
+            var recent = await db.PasswordResets.Where(r => r.UserId == user.Id && r.CreatedAt > DateTimeOffset.UtcNow.AddMinutes(-1)).AnyAsync();
+            if (!recent) {
+                var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+                db.PasswordResets.Add(new PasswordReset { UserId = user.Id, CodeHash = passwords.Hash(code), ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(15) });
+                await db.SaveChangesAsync();
+                await email.SendPasswordResetAsync(user.Email, code);
+            }
+        }
+        return Results.Ok(new { message = "Nếu email đã đăng ký, mã xác nhận sẽ được gửi trong ít phút." });
+    }
+
+    private static async Task<IResult> ResetPassword(ResetPasswordRequest x, AppDb db, PasswordService passwords) {
+        var address = x.Email.Trim().ToLowerInvariant();
+        if (!address.Contains('@') || x.Code.Trim().Length != 6 || x.Password.Length < 8) return Results.BadRequest(new { message = "Mã xác nhận hoặc mật khẩu chưa hợp lệ. Mật khẩu tối thiểu 8 ký tự." });
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Email == address);
+        if (user is null) return Results.BadRequest(new { message = "Mã xác nhận không hợp lệ hoặc đã hết hạn." });
+        var reset = await db.PasswordResets.Where(r => r.UserId == user.Id && r.UsedAt == null && r.ExpiresAt > DateTimeOffset.UtcNow).OrderByDescending(r => r.CreatedAt).FirstOrDefaultAsync();
+        if (reset is null || !passwords.Verify(x.Code.Trim(), reset.CodeHash)) return Results.BadRequest(new { message = "Mã xác nhận không hợp lệ hoặc đã hết hạn." });
+        user.PasswordHash = passwords.Hash(x.Password); reset.UsedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync();
+        return Results.Ok(new { message = "Đã đặt lại mật khẩu. Bạn có thể đăng nhập ngay." });
+    }
     private static async Task<IResult> Me(CurrentUser current, AppDb db) {
         var user = await db.Users.FindAsync(current.Id);
         return user is null ? Results.Unauthorized() : Results.Ok(new { user.Id, user.DisplayName, user.Email });

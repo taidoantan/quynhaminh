@@ -97,6 +97,12 @@ class Api {
     return Map<String, dynamic>.from(x);
   }
 
+  static Future<dynamic> forgotPassword(String email) =>
+      request('POST', '/api/auth/forgot-password', body: {'email': email});
+  static Future<dynamic> resetPassword(
+          String email, String code, String password) =>
+      request('POST', '/api/auth/reset-password',
+          body: {'email': email, 'code': code, 'password': password});
   static Future<List<dynamic>> funds() async =>
       List<dynamic>.from(await _getCached('funds', '/api/funds'));
   static Future<dynamic> createFund(String name) =>

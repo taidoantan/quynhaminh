@@ -23,6 +23,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<PasswordService>();
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddScoped<FundAccess>();
 builder.Services.AddScoped<SupabaseStorage>();
