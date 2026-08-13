@@ -34,6 +34,17 @@ public sealed class FundMember : IEntity {
     public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public sealed class FundInvitation : IEntity {
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FundId { get; set; }
+    public Fund Fund { get; set; } = null!;
+    public Guid RecipientUserId { get; set; }
+    public User RecipientUser { get; set; } = null!;
+    public Guid InvitedBy { get; set; }
+    public string Status { get; set; } = "pending";
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? RespondedAt { get; set; }
+}
 public sealed class Category : IEntity, ISoftDelete {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid FundId { get; set; }

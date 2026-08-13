@@ -6,6 +6,7 @@ public sealed record AuthResponse(string Token, object User);
 public sealed record CreateFundRequest(string Name);
 public sealed record JoinFundRequest(string InviteCode);
 public sealed record ChangeRoleRequest(string Role);
+public sealed record DirectFundInviteRequest(string Recipient);
 public sealed record CategoryRequest(string Name, string Type, string Icon, string Color);
 public sealed record MoneyAccountRequest(string Name, string Type, decimal InitialBalance, string Currency = "VND");
 public sealed record TransactionRequest(Guid FundId, Guid CategoryId, Guid AccountId, string Type, decimal Amount, DateTime TransactionDate, string? Note, string? Merchant, string? ReceiptUrl);

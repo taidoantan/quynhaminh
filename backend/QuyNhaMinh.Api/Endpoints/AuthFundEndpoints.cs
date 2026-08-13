@@ -13,11 +13,15 @@ public static class AuthFundEndpoints {
         auth.MapPost("/register", Register).AllowAnonymous();
         auth.MapPost("/login", Login).AllowAnonymous();
         auth.MapGet("/me", Me).RequireAuthorization();
+        auth.MapGet("/invitations", ListDirectInvitations).RequireAuthorization();
+        auth.MapPost("/invitations/{invitationId:guid}/accept", AcceptDirectInvitation).RequireAuthorization();
+        auth.MapPost("/invitations/{invitationId:guid}/decline", DeclineDirectInvitation).RequireAuthorization();
 
         var funds = app.MapGroup("/api/funds").WithTags("Funds").RequireAuthorization().RequireRateLimiting("api");
         funds.MapGet("/", ListFunds);
         funds.MapPost("/", CreateFund);
         funds.MapPost("/join", JoinFund);
+        funds.MapPost("/{fundId:guid}/invitations", SendDirectInvitation);
         funds.MapGet("/{fundId:guid}", GetFund);
         funds.MapPut("/{fundId:guid}", RenameFund);
         funds.MapDelete("/{fundId:guid}", DeleteFund);
@@ -72,6 +76,42 @@ public static class AuthFundEndpoints {
         return Results.Ok(new { fund.Id, fund.Name, fund.InviteCode, existing.Role });
     }
 
+    private static async Task<IResult> SendDirectInvitation(Guid fundId, DirectFundInviteRequest x, CurrentUser current, FundAccess access, AppDb db) {
+        await access.Require(fundId, Roles.Owner, Roles.Admin);
+        var recipient = x.Recipient.Trim();
+        if (recipient.Length < 2) return Results.BadRequest(new { message = "Hãy nhập email hoặc tên hiển thị của người nhận." });
+        var candidates = await db.Users.Where(u => u.Email == recipient.ToLower() || u.DisplayName == recipient).Take(2).ToListAsync();
+        if (candidates.Count == 0) return Results.NotFound(new { message = "Không tìm thấy tài khoản này. Người nhận cần đăng ký Quỹ Nhà Mình trước." });
+        if (candidates.Count > 1) return Results.BadRequest(new { message = "Tên hiển thị bị trùng. Hãy dùng email đăng nhập của người nhận." });
+        var user = candidates[0];
+        if (user.Id == current.Id) return Results.BadRequest(new { message = "Không thể tự gửi lời mời cho chính mình." });
+        if (await db.FundMembers.AnyAsync(m => m.FundId == fundId && m.UserId == user.Id)) return Results.Conflict(new { message = "Người này đã là thành viên của quỹ." });
+        var invite = await db.FundInvitations.SingleOrDefaultAsync(i => i.FundId == fundId && i.RecipientUserId == user.Id);
+        if (invite is null) { invite = new FundInvitation { FundId = fundId, RecipientUserId = user.Id, InvitedBy = current.Id }; db.FundInvitations.Add(invite); }
+        else { invite.Status = "pending"; invite.InvitedBy = current.Id; invite.CreatedAt = DateTimeOffset.UtcNow; invite.RespondedAt = null; }
+        await db.SaveChangesAsync();
+        return Results.Ok(new { invite.Id, recipient = new { user.DisplayName, user.Email }, message = "Đã gửi lời mời trong ứng dụng." });
+    }
+
+    private static async Task<IResult> ListDirectInvitations(CurrentUser current, AppDb db) => Results.Ok(await db.FundInvitations
+        .Where(i => i.RecipientUserId == current.Id && i.Status == "pending")
+        .OrderByDescending(i => i.CreatedAt)
+        .Select(i => new { i.Id, i.FundId, FundName = i.Fund.Name, i.CreatedAt })
+        .ToListAsync());
+
+    private static async Task<IResult> AcceptDirectInvitation(Guid invitationId, CurrentUser current, AppDb db) {
+        var invite = await db.FundInvitations.Include(i => i.Fund).SingleOrDefaultAsync(i => i.Id == invitationId && i.RecipientUserId == current.Id && i.Status == "pending");
+        if (invite is null) return Results.NotFound(new { message = "Lời mời không còn hiệu lực." });
+        if (!await db.FundMembers.AnyAsync(m => m.FundId == invite.FundId && m.UserId == current.Id)) db.FundMembers.Add(new FundMember { FundId = invite.FundId, UserId = current.Id, Role = Roles.Member });
+        invite.Status = "accepted"; invite.RespondedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync();
+        return Results.Ok(new { invite.FundId, invite.Fund.Name, invite.Fund.InviteCode, Role = Roles.Member });
+    }
+
+    private static async Task<IResult> DeclineDirectInvitation(Guid invitationId, CurrentUser current, AppDb db) {
+        var invite = await db.FundInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.RecipientUserId == current.Id && i.Status == "pending");
+        if (invite is null) return Results.NotFound(new { message = "Lời mời không còn hiệu lực." });
+        invite.Status = "declined"; invite.RespondedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync(); return Results.NoContent();
+    }
     private static async Task<IResult> GetFund(Guid fundId, FundAccess access, AppDb db) {
         var member = await access.Require(fundId);
         var fund = await db.Funds.Where(x => x.Id == fundId).Select(x => new { x.Id, x.Name, x.InviteCode, member.Role, MemberCount = x.Members.Count }).SingleAsync();

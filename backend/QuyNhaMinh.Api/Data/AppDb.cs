@@ -7,6 +7,7 @@ public sealed class AppDb(DbContextOptions<AppDb> options) : DbContext(options) 
     public DbSet<QuyNhaMinh.Api.Domain.User> Users => Set<QuyNhaMinh.Api.Domain.User>();
     public DbSet<Fund> Funds => Set<Fund>();
     public DbSet<FundMember> FundMembers => Set<FundMember>();
+    public DbSet<FundInvitation> FundInvitations => Set<FundInvitation>();
     public DbSet<QuyNhaMinh.Api.Domain.Category> Categories => Set<QuyNhaMinh.Api.Domain.Category>();
     public DbSet<MoneyAccount> MoneyAccounts => Set<MoneyAccount>();
     public DbSet<QuyNhaMinh.Api.Domain.MoneyTransaction> Transactions => Set<QuyNhaMinh.Api.Domain.MoneyTransaction>();
@@ -19,6 +20,7 @@ public sealed class AppDb(DbContextOptions<AppDb> options) : DbContext(options) 
         b.Entity<QuyNhaMinh.Api.Domain.User>().HasIndex(x => x.Email).IsUnique();
         b.Entity<Fund>().HasIndex(x => x.InviteCode).IsUnique();
         b.Entity<FundMember>().HasIndex(x => new { x.FundId, x.UserId }).IsUnique();
+        b.Entity<FundInvitation>().HasIndex(x => new { x.FundId, x.RecipientUserId }).IsUnique();
         b.Entity<QuyNhaMinh.Api.Domain.Category>().HasIndex(x => new { x.FundId, x.Type, x.Name }).IsUnique();
         b.Entity<Budget>().HasIndex(x => new { x.FundId, x.CategoryId, x.Year, x.Month }).IsUnique();
         b.Entity<QuyNhaMinh.Api.Domain.MoneyTransaction>().Property(x => x.Amount).HasPrecision(18, 2);

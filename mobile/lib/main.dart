@@ -1272,6 +1272,85 @@ void _showDownload(BuildContext c, String kind, String url) => showDialog(
                   onPressed: () => Navigator.pop(c), child: const Text('Đóng'))
             ]));
 
+class ReceivedInvitationsScreen extends StatefulWidget {
+  final AppState s;
+  const ReceivedInvitationsScreen(this.s, {super.key});
+  @override
+  State<ReceivedInvitationsScreen> createState() =>
+      _ReceivedInvitationsScreenState();
+}
+
+class _ReceivedInvitationsScreenState extends State<ReceivedInvitationsScreen> {
+  late Future<List<dynamic>> items;
+  @override
+  void initState() {
+    super.initState();
+    items = Api.directInvitations();
+  }
+
+  Future<void> reply(Map item, bool accept) async {
+    try {
+      await Api.respondToInvitation('${item['id']}', accept);
+      if (accept) await widget.s.reloadFunds();
+      if (mounted) {
+        setState(() => items = Api.directInvitations());
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                Text(accept ? 'Bạn đã tham gia quỹ.' : 'Đã từ chối lời mời.')));
+      }
+    } on ApiError catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+      appBar: AppBar(title: const Text('Lời mời nhận được')),
+      body: FutureBuilder<List<dynamic>>(
+          future: items,
+          builder: (_, snap) {
+            if (!snap.hasData)
+              return const Center(child: CircularProgressIndicator());
+            if (snap.data!.isEmpty)
+              return const Center(child: Text('Bạn chưa có lời mời nào.'));
+            return ListView.separated(
+                padding: const EdgeInsets.all(14),
+                itemCount: snap.data!.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (_, index) {
+                  final item = Map<String, dynamic>.from(snap.data![index]);
+                  return Card(
+                      child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.group_add_rounded,
+                                    color: blue),
+                                const SizedBox(height: 8),
+                                Text('${item['fundName']}',
+                                    style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 12),
+                                Row(children: [
+                                  Expanded(
+                                      child: OutlinedButton(
+                                          onPressed: () => reply(item, false),
+                                          child: const Text('Từ chối'))),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                      child: FilledButton(
+                                          onPressed: () => reply(item, true),
+                                          child: const Text('Tham gia')))
+                                ])
+                              ])));
+                });
+          }));
+}
+
 class MoreScreen extends StatelessWidget {
   final AppState s;
   const MoreScreen(this.s, {super.key});
@@ -1292,6 +1371,13 @@ class MoreScreen extends StatelessWidget {
               'Mã mời quỹ',
               () => Navigator.push(
                   c, MaterialPageRoute(builder: (_) => InviteScreen(s)))),
+          Menu(
+              Icons.mail_outline_rounded,
+              'Lời mời nhận được',
+              () => Navigator.push(
+                  c,
+                  MaterialPageRoute(
+                      builder: (_) => ReceivedInvitationsScreen(s)))),
           Menu(
               Icons.account_balance_wallet_outlined,
               'Tài khoản tiền',
@@ -1481,6 +1567,40 @@ class InviteScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _sendInApp(BuildContext context) async {
+    final recipient = TextEditingController();
+    final value = await showDialog<String>(
+        context: context,
+        builder: (d) => AlertDialog(
+                title: const Text('Gửi trong ứng dụng'),
+                content: TextField(
+                    controller: recipient,
+                    autofocus: true,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                        labelText: 'Email hoặc tên hiển thị')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(d),
+                      child: const Text('Hủy')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(d, recipient.text),
+                      child: const Text('Gửi lời mời'))
+                ]));
+    recipient.dispose();
+    if (value == null || value.trim().isEmpty) return;
+    try {
+      await Api.sendDirectInvitation(s.id, value.trim());
+      if (context.mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã gửi lời mời trong ứng dụng.')));
+    } on ApiError catch (e) {
+      if (context.mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   Future<void> _copy(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: _code));
     if (context.mounted) {
@@ -1523,6 +1643,11 @@ class InviteScreen extends StatelessWidget {
                         onPressed: () => _share(c),
                         icon: const Icon(Icons.send_rounded),
                         label: const Text('Gửi lời mời')),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                        onPressed: () => _sendInApp(c),
+                        icon: const Icon(Icons.person_add_alt_1_rounded),
+                        label: const Text('Gửi trong ứng dụng')),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
                         onPressed: () => _copy(c),

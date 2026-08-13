@@ -103,6 +103,13 @@ class Api {
       request('POST', '/api/funds', body: {'name': name});
   static Future<dynamic> joinFund(String code) =>
       request('POST', '/api/funds/join', body: {'inviteCode': code});
+  static Future<List<dynamic>> directInvitations() async =>
+      List<dynamic>.from(await request('GET', '/api/auth/invitations'));
+  static Future<dynamic> sendDirectInvitation(String fund, String recipient) =>
+      request('POST', '/api/funds/$fund/invitations',
+          body: {'recipient': recipient});
+  static Future<dynamic> respondToInvitation(String id, bool accept) => request(
+      'POST', '/api/auth/invitations/$id/${accept ? 'accept' : 'decline'}');
   static Future<dynamic> _getCached(String key, String path) async {
     try {
       final value = await request('GET', path);

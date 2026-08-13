@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS "Funds" ("Id" uuid PRIMARY KEY, "Name" text NOT NULL,
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Funds_InviteCode" ON "Funds" ("InviteCode");
 CREATE TABLE IF NOT EXISTS "FundMembers" ("Id" uuid PRIMARY KEY, "FundId" uuid NOT NULL REFERENCES "Funds"("Id") ON DELETE CASCADE, "UserId" uuid NOT NULL REFERENCES "Users"("Id") ON DELETE CASCADE, "Role" text NOT NULL, "JoinedAt" timestamptz NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_FundMembers_FundId_UserId" ON "FundMembers" ("FundId", "UserId");
+CREATE TABLE IF NOT EXISTS "FundInvitations" ("Id" uuid PRIMARY KEY, "FundId" uuid NOT NULL REFERENCES "Funds"("Id") ON DELETE CASCADE, "RecipientUserId" uuid NOT NULL REFERENCES "Users"("Id") ON DELETE CASCADE, "InvitedBy" uuid NOT NULL REFERENCES "Users"("Id") ON DELETE CASCADE, "Status" text NOT NULL, "CreatedAt" timestamptz NOT NULL, "RespondedAt" timestamptz NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_FundInvitations_FundId_RecipientUserId" ON "FundInvitations" ("FundId", "RecipientUserId");
 CREATE TABLE IF NOT EXISTS "Categories" ("Id" uuid PRIMARY KEY, "FundId" uuid NOT NULL, "Name" text NOT NULL, "Type" text NOT NULL, "Icon" text NOT NULL, "Color" text NOT NULL, "IsDefault" boolean NOT NULL, "IsDeleted" boolean NOT NULL, "DeletedAt" timestamptz NULL, "DeletedBy" uuid NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Categories_FundId_Type_Name" ON "Categories" ("FundId", "Type", "Name");
 CREATE TABLE IF NOT EXISTS "MoneyAccounts" ("Id" uuid PRIMARY KEY, "FundId" uuid NOT NULL, "Name" text NOT NULL, "Type" text NOT NULL, "InitialBalance" numeric(18,2) NOT NULL, "Currency" text NOT NULL, "IsDeleted" boolean NOT NULL, "DeletedAt" timestamptz NULL, "DeletedBy" uuid NULL);
