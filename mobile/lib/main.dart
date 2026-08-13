@@ -1702,7 +1702,7 @@ class InviteScreen extends StatelessWidget {
                       onPressed: () => Navigator.pop(d, recipient.text),
                       child: const Text('Gửi lời mời'))
                 ]));
-    recipient.dispose();
+    // The dialog owns the TextField lifecycle; disposing here can race its closing animation.
     if (value == null || value.trim().isEmpty) return;
     try {
       await Api.sendDirectInvitation(s.id, value.trim());
