@@ -1008,8 +1008,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         return FutureBuilder<dynamic>(
           key: ValueKey(query), future: Api.request('GET', '/api/funds/${widget.s.id}/reports?$query'),
           builder: (c, x) {
-            if (!x.hasData) return const Center(child: CircularProgressIndicator());
-            final d=x.data, cats=List<dynamic>.from(d['byCategory'] ?? []), days=List<dynamic>.from(d['byDay'] ?? []);
+                    if (x.hasError) return ErrorView('${x.error}', () => setState(() {}));
+                    if (!x.hasData) return const Center(child: CircularProgressIndicator());
+                    final d=x.data, cats=List<dynamic>.from(d['byCategory'] ?? []), days=List<dynamic>.from(d['byDay'] ?? []);
             return ListView(padding: const EdgeInsets.all(14), children: [
               SegmentedButton<int>(segments: const [ButtonSegment(value:0,label:Text('Ngày')),ButtonSegment(value:1,label:Text('Tháng')),ButtonSegment(value:2,label:Text('Năm'))], selected:{period}, onSelectionChanged:(v)=>setState(()=>period=v.first)),
               Card(child: Padding(padding: const EdgeInsets.all(10), child: Column(children:[
@@ -1270,7 +1271,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Widget build(BuildContext c) {
     return Scaffold(
         appBar: AppBar(title: const Text('Danh mục')),
-        body: Column(children: [
+        floatingActionButton: FloatingActionButton.extended(onPressed: () => _newCategory(c), icon: const Icon(Icons.add), label: const Text('Thêm danh mục')),
+        body: SafeArea(top: false, child: Column(children: [
           Padding(
               padding: const EdgeInsets.all(14),
               child: SegmentedButton<String>(
@@ -1299,13 +1301,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                         backgroundColor: _categoryColor('${e['color'] ?? '#1769E0'}').withValues(alpha: .14),
                                         child: Icon(_categoryIcon('${e['icon'] ?? ''}', type), color: _categoryColor('${e['color'] ?? '#1769E0'}'))),
                                     title: Text('${e['name']}'))),
-                          OutlinedButton.icon(
-                              onPressed: () => _newCategory(c),
-                              icon: const Icon(Icons.add),
-                              label: const Text('Thêm danh mục'))
                         ]);
                   }))
-        ]));
+        ])));
   }
 
   void _newCategory(BuildContext c) {
