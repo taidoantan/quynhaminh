@@ -57,9 +57,9 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", app = "Quỹ Nhà Mình", database = string.IsNullOrWhiteSpace(databaseUrl) ? "sqlite-local" : "postgresql", utc = DateTimeOffset.UtcNow })).AllowAnonymous();
 app.MapGet("/app-update", () => Results.Ok(new {
-    version = Environment.GetEnvironmentVariable("APP_LATEST_VERSION") ?? "2.0.3",
+    version = "2.0.4",
     url = Environment.GetEnvironmentVariable("APP_UPDATE_URL") ?? "https://github.com/taidoantan/quynhaminh/releases/latest/download/QuyNhaMinh.apk",
-    notes = Environment.GetEnvironmentVariable("APP_UPDATE_NOTES") ?? "Cập nhật Quỹ Nhà Mình để có giao diện và tính năng mới nhất."
+    notes = "Sửa gửi lời mời trong ứng dụng và thêm Quên mật khẩu."
 })).AllowAnonymous();
 app.MapAuthAndFunds();
 app.MapFinance();
