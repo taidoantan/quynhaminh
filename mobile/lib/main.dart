@@ -350,32 +350,13 @@ class _HomeShellState extends State<HomeShell> {
           floatingActionButtonLocation:
               FloatingActionButtonLocation.centerDocked,
           bottomNavigationBar: NavigationBar(
-              selectedIndex: s.tab == 2 ? 0 : s.tab,
-              onDestinationSelected: (i) {
-                if (i == 2) {
-                  Navigator.push(
-                      c,
-                      MaterialPageRoute(
-                          builder: (_) => TransactionEditor(s))).then((v) {
-                    if (v == true) s.refresh();
-                  });
-                } else {
-                  s.go(i);
-                }
-              },
+              selectedIndex: s.tab,
+              onDestinationSelected: s.go,
               destinations: const [
-                NavigationDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home),
-                    label: 'Tổng quan'),
-                NavigationDestination(
-                    icon: Icon(Icons.tune), label: 'Giao dịch'),
-                NavigationDestination(
-                    icon: Icon(Icons.add_circle_outline), label: 'Tạo'),
-                NavigationDestination(
-                    icon: Icon(Icons.bar_chart_outlined), label: 'Báo cáo'),
-                NavigationDestination(
-                    icon: Icon(Icons.more_horiz), label: 'Khác')
+                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Tổng quan'),
+                NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Giao dịch'),
+                NavigationDestination(icon: Icon(Icons.bar_chart_outlined), label: 'Báo cáo'),
+                NavigationDestination(icon: Icon(Icons.menu_outlined), selectedIcon: Icon(Icons.menu), label: 'Khác')
               ])));
 }
 
@@ -774,6 +755,24 @@ class TransactionTile extends StatelessWidget {
   }
 }
 
+class _SuggestionChips extends StatelessWidget {
+  final String label;
+  final List<String> values;
+  final ValueChanged<String> onPick;
+  const _SuggestionChips({required this.label, required this.values, required this.onPick});
+  @override
+  Widget build(BuildContext context) {
+    if (values.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: Theme.of(context).textTheme.labelSmall),
+        const SizedBox(height: 3),
+        Wrap(spacing: 6, runSpacing: 2, children: values.map((v) => ActionChip(label: Text(v), onPressed: () => onPick(v))).toList()),
+      ]),
+    );
+  }
+}
 class TransactionEditor extends StatefulWidget {
   final AppState s;
   final Map<String, dynamic>? editing;
@@ -788,7 +787,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
   final amount = TextEditingController(),
       merchant = TextEditingController(),
       note = TextEditingController();
-  List<dynamic> cats = [], accounts = [];
+  List<dynamic> cats = [], accounts = [], history = [];
   String? cat, account;
   DateTime date = DateTime.now();
   bool busy = true;
@@ -812,6 +811,8 @@ class _TransactionEditorState extends State<TransactionEditor> {
   Future<void> load() async {
     cats = await Api.list(widget.s.id, 'categories', query: 'type=$type');
     accounts = await Api.list(widget.s.id, 'accounts');
+    final previous = await Api.transactions(widget.s.id, query: 'pageSize=100');
+    history = List<dynamic>.from(previous['items'] ?? []);
     cat = widget.editing?['categoryId']?.toString() ??
         cats
             .cast<dynamic>()
@@ -927,14 +928,20 @@ class _TransactionEditorState extends State<TransactionEditor> {
               const SizedBox(height: 12),
               TextField(
                   controller: merchant,
-                  decoration:
-                      const InputDecoration(labelText: 'Cửa hàng / nguồn thu')),
+                  decoration: const InputDecoration(labelText: 'Cửa hàng / nguồn thu')),
+              _SuggestionChips(
+                  label: 'Gợi ý đã nhập',
+                  values: history.map((e) => '${e['merchant'] ?? ''}'.trim()).where((v) => v.isNotEmpty).toSet().take(8).toList(),
+                  onPick: (v) => setState(() => merchant.text = v)),
               const SizedBox(height: 12),
               TextField(
                   controller: note,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                      labelText: 'Mô tả (không bắt buộc)')),
+                  decoration: const InputDecoration(labelText: 'Mô tả (không bắt buộc)')),
+              _SuggestionChips(
+                  label: 'Mô tả đã dùng',
+                  values: history.map((e) => '${e['note'] ?? ''}'.trim()).where((v) => v.isNotEmpty).toSet().take(8).toList(),
+                  onPick: (v) => setState(() => note.text = v)),
               const SizedBox(height: 18),
               OutlinedButton.icon(
                   onPressed: () => Navigator.push(
@@ -1229,6 +1236,27 @@ class InviteScreen extends StatelessWidget {
                   ]))));
 }
 
+IconData _categoryIcon(String icon, String type) {
+  const icons = <String, IconData>{
+    'restaurant': Icons.restaurant_rounded,
+    'local_dining': Icons.restaurant_rounded,
+    'directions_car': Icons.directions_car_rounded,
+    'home': Icons.home_rounded,
+    'bolt': Icons.bolt_rounded,
+    'school': Icons.school_rounded,
+    'medical_services': Icons.medical_services_rounded,
+    'shopping_bag': Icons.shopping_bag_rounded,
+    'movie': Icons.movie_rounded,
+    'payments': Icons.payments_rounded,
+    'volunteer_activism': Icons.volunteer_activism_rounded,
+    'workspace_premium': Icons.workspace_premium_rounded,
+  };
+  return icons[icon] ?? (type == 'income' ? Icons.savings_rounded : Icons.more_horiz_rounded);
+}
+
+Color _categoryColor(String value) {
+  try { return Color(int.parse(value.replaceFirst('#', '0xff'))); } catch (_) { return blue; }
+}
 class CategoriesScreen extends StatefulWidget {
   final AppState s;
   const CategoriesScreen(this.s, {super.key});
@@ -1267,8 +1295,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                           for (final e in x.data!)
                             Card(
                                 child: ListTile(
-                                    leading: const CircleAvatar(
-                                        child: Icon(Icons.category)),
+                                    leading: CircleAvatar(
+                                        backgroundColor: _categoryColor('${e['color'] ?? '#1769E0'}').withValues(alpha: .14),
+                                        child: Icon(_categoryIcon('${e['icon'] ?? ''}', type), color: _categoryColor('${e['color'] ?? '#1769E0'}'))),
                                     title: Text('${e['name']}'))),
                           OutlinedButton.icon(
                               onPressed: () => _newCategory(c),
