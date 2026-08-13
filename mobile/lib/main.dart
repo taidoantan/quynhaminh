@@ -216,7 +216,8 @@ class _Brand extends StatelessWidget {
 }
 
 class FundGate extends StatefulWidget {
-  const FundGate({super.key});
+  final VoidCallback onLogout;
+  const FundGate({super.key, required this.onLogout});
   @override
   State<FundGate> createState() => _FundGateState();
 }
