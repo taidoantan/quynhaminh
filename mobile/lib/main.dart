@@ -1337,12 +1337,36 @@ class _SimpleResourceScreenState extends State<SimpleResourceScreen> {
                                 child: Icon(Icons.account_balance_wallet)),
                             title: Text('${item['name']}'),
                             subtitle: Text('${item['type']}'),
-                            trailing: Text(money(item['balance']),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)))))
+                            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text(money(item['balance']), style: const TextStyle(fontWeight: FontWeight.bold)),
+                              IconButton(
+                                tooltip: 'Xóa tài khoản',
+                                icon: const Icon(Icons.delete_outline, color: red),
+                                onPressed: () => _deleteAccount(item),
+                              ),
+                            ]))))
                     .toList());
           }));
 
+  Future<void> _deleteAccount(dynamic item) async {
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+              title: const Text('Xóa tài khoản?'),
+              content: Text('Xóa tài khoản đã chọn? Tài khoản đã có giao dịch không thể xóa để bảo toàn lịch sử.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Hủy')),
+                FilledButton.tonal(onPressed: () => Navigator.pop(c, true), child: const Text('Xóa')),
+              ],
+            ));
+    if (confirmed != true || !mounted) return;
+    try {
+      await Api.remove(widget.s.id, 'accounts', '${item['id']}');
+      if (mounted) setState(() {});
+    } on ApiError catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
   Future<void> _addAccount() async {
     final name = TextEditingController();
     final balance = TextEditingController(text: '0');
