@@ -1131,7 +1131,14 @@ class MoreScreen extends StatelessWidget {
               () => showAboutDialog(
                   context: c,
                   applicationName: 'Quỹ Nhà Mình',
-                  applicationVersion: '2.0.0'))
+                  applicationVersion: '2.0.0')),
+          Menu(Icons.logout, 'Đăng xuất', () async {
+            final ok = await showDialog<bool>(context: c, builder: (d) => AlertDialog(
+              title: const Text('Đăng xuất?'), content: const Text('Bạn sẽ cần đăng nhập lại để dùng ứng dụng.'),
+              actions: [TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Hủy')), FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Đăng xuất'))],
+            ));
+            if (ok == true) { await Api.logout(); if (c.mounted) Navigator.pushAndRemoveUntil(c, MaterialPageRoute(builder: (_) => const Gate()), (_) => false); }
+          })
         ])
       ]));
 }
