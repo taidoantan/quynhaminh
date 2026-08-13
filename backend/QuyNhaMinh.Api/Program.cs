@@ -65,7 +65,7 @@ app.Run("http://0.0.0.0:5180");
 
 static async Task InitializeDatabase(IServiceProvider services) {
     using var scope = services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-    if (db.Database.IsNpgsql()) await db.Database.EnsureCreatedAsync();
+    // Supabase already has system tables; migrations must create the application schema.`r`n    if (db.Database.IsNpgsql()) await db.Database.MigrateAsync();
     else if ((await db.Database.GetPendingMigrationsAsync()).Any() || (await db.Database.GetAppliedMigrationsAsync()).Any()) await db.Database.MigrateAsync();
     else await db.Database.EnsureCreatedAsync();
 }
