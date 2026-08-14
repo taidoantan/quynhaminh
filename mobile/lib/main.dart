@@ -458,7 +458,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.4';
+const _appVersion = '2.0.5';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
@@ -512,34 +512,42 @@ class _HomeShellState extends State<HomeShell> {
             ReportsScreen(s),
             MoreScreen(s)
           ]),
-          floatingActionButton: FloatingActionButton(
-              onPressed: () => Navigator.push(
+          bottomNavigationBar: NavigationBar(
+              selectedIndex: s.tab >= 2 ? s.tab + 1 : s.tab,
+              onDestinationSelected: (index) {
+                if (index == 2) {
+                  Navigator.push(
                       c,
                       MaterialPageRoute(
                           builder: (_) => TransactionEditor(s))).then((v) {
                     if (v == true) s.refresh();
-                  }),
-              backgroundColor: blue,
-              foregroundColor: Colors.white,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add)),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerDocked,
-          bottomNavigationBar: NavigationBar(
-              selectedIndex: s.tab,
-              onDestinationSelected: s.go,
-              destinations: const [
-                NavigationDestination(
+                  });
+                } else {
+                  s.go(index > 2 ? index - 1 : index);
+                }
+              },
+              destinations: [
+                const NavigationDestination(
                     icon: Icon(Icons.home_outlined),
                     selectedIcon: Icon(Icons.home),
                     label: 'Tổng quan'),
-                NavigationDestination(
+                const NavigationDestination(
                     icon: Icon(Icons.receipt_long_outlined),
                     selectedIcon: Icon(Icons.receipt_long),
                     label: 'Giao dịch'),
                 NavigationDestination(
-                    icon: Icon(Icons.bar_chart_outlined), label: 'Báo cáo'),
-                NavigationDestination(
+                    icon: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                            color: blue, shape: BoxShape.circle),
+                        child: const Icon(Icons.add, color: Colors.white)),
+                    label: 'Tạo'),
+                const NavigationDestination(
+                    icon: Icon(Icons.bar_chart_outlined),
+                    selectedIcon: Icon(Icons.bar_chart),
+                    label: 'Báo cáo'),
+                const NavigationDestination(
                     icon: Icon(Icons.menu_outlined),
                     selectedIcon: Icon(Icons.menu),
                     label: 'Khác')
