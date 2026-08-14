@@ -946,14 +946,14 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  String filter = '';
+  String filter = ';
   String _dayLabel(DateTime date) {
     final today = DateTime.now();
     final d = DateTime(date.year, date.month, date.day);
     final now = DateTime(today.year, today.month, today.day);
-    if (d == now) return 'Hôm nay · ${DateFormat(''dd/MM/yyyy'').format(date)}';
-    if (d == now.subtract(const Duration(days: 1))) return 'Hôm qua · ${DateFormat(''dd/MM/yyyy'').format(date)}';
-    return DateFormat(''EEEE · dd/MM/yyyy'', ''vi_VN'').format(date);
+    if (d == now) return 'Hôm nay · ${DateFormat('dd/MM/yyyy').format(date)}';
+    if (d == now.subtract(const Duration(days: 1))) return 'Hôm qua · ${DateFormat('dd/MM/yyyy').format(date)}';
+    return DateFormat('EEEE · dd/MM/yyyy', 'vi_VN').format(date);
   }
 
   @override
@@ -972,7 +972,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     shape: const WidgetStatePropertyAll(StadiumBorder())),
                 showSelectedIcon: false,
                 segments: const [
-                  ButtonSegment(value: '', label: Text('Tất cả')),
+                  ButtonSegment(value: ', label: Text('Tất cả')),
                   ButtonSegment(value: 'income', label: Text('Thu')),
                   ButtonSegment(value: 'expense', label: Text('Chi'))
                 ],
@@ -991,7 +991,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               for (final raw in items) {
                 final item = Map<String, dynamic>.from(raw);
                 final date = DateTime.tryParse('${item['transactionDate']}') ?? DateTime.now();
-                final key = DateFormat(''yyyy-MM-dd'').format(date);
+                final key = DateFormat('yyyy-MM-dd').format(date);
                 groups.putIfAbsent(key, () => []).add(item);
                 groupDates[key] = date;
               }
@@ -1039,7 +1039,7 @@ class TransactionTile extends StatelessWidget {
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(title?.isNotEmpty == true ? title! : income ? 'Khoản thu' : 'Khoản chi', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xff1e293b))),
                 const SizedBox(height: 3),
-                Text('${x['categoryName'] ?? (income ? 'Thu nhập' : 'Chi tiêu')} · ${x['creatorName'] ?? ''}${time == null ? '' : ' · ${DateFormat(''HH:mm'').format(time.toLocal())}'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xff758197), fontSize: 12))
+                Text('${x['categoryName'] ?? (income ? 'Thu nhập' : 'Chi tiêu')} · ${x['creatorName'] ?? '}${time == null ? ' : ' · ${DateFormat('HH:mm').format(time.toLocal())}'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xff758197), fontSize: 12))
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text('${income ? '+' : '-'}${money(x['amount'])}', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14)),
@@ -2789,4 +2789,5 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
+
 
