@@ -1675,6 +1675,11 @@ class MoreScreen extends StatelessWidget {
         ]),
         Section('Cài đặt chung', [
           Menu(
+              Icons.manage_accounts_outlined,
+              'Quản lý tài khoản',
+              () => Navigator.push(
+                  c, MaterialPageRoute(builder: (_) => const AccountScreen()))),
+          Menu(
               Icons.category_outlined,
               'Danh mục thu chi',
               () => Navigator.push(
@@ -1749,6 +1754,102 @@ class MoreScreen extends StatelessWidget {
           })
         ])
       ]));
+}
+
+class AccountScreen extends StatefulWidget {
+  const AccountScreen({super.key});
+  @override
+  State<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends State<AccountScreen> {
+  late Future<Map<String, dynamic>> profile;
+  @override
+  void initState() {
+    super.initState();
+    profile = Api.me();
+  }
+
+  Future<void> _edit(Map<String, dynamic> me) async {
+    final controller =
+        TextEditingController(text: '${me['displayName'] ?? ''}');
+    final name = await showDialog<String>(
+        context: context,
+        builder: (d) => AlertDialog(
+                title: const Text('Sửa tên hiển thị'),
+                content: TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration:
+                        const InputDecoration(labelText: 'Tên hiển thị')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(d),
+                      child: const Text('Hủy')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(d, controller.text),
+                      child: const Text('Lưu'))
+                ]));
+    if (name == null || name.trim().isEmpty) return;
+    try {
+      await Api.updateProfile(name.trim());
+      if (mounted) setState(() => profile = Api.me());
+    } on ApiError catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+      appBar: AppBar(title: const Text('Quản lý tài khoản')),
+      body: FutureBuilder<Map<String, dynamic>>(
+          future: profile,
+          builder: (_, snap) {
+            if (!snap.hasData)
+              return const Center(child: CircularProgressIndicator());
+            final me = snap.data!;
+            return ListView(padding: const EdgeInsets.all(16), children: [
+              Card(
+                  child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(children: [
+                        CircleAvatar(
+                            radius: 32,
+                            backgroundColor: blue.withValues(alpha: .12),
+                            child: Text(
+                                '${me['displayName'] ?? 'U'}'[0].toUpperCase(),
+                                style: const TextStyle(
+                                    fontSize: 24, color: blue))),
+                        const SizedBox(height: 12),
+                        Text('${me['displayName']}',
+                            style: const TextStyle(
+                                fontSize: 19, fontWeight: FontWeight.bold)),
+                        Text('${me['email']}',
+                            style: const TextStyle(color: Colors.grey))
+                      ]))),
+              const SizedBox(height: 10),
+              Card(
+                  child: Column(children: [
+                ListTile(
+                    leading: const Icon(Icons.edit_outlined, color: blue),
+                    title: const Text('Sửa tên hiển thị'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _edit(me)),
+                const Divider(height: 1),
+                ListTile(
+                    leading: const Icon(Icons.lock_reset_outlined, color: blue),
+                    title: const Text('Đổi mật khẩu'),
+                    subtitle: const Text('Dùng mã xác nhận gửi qua email'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Vào màn hình Đăng nhập và chọn Quên mật khẩu để đổi mật khẩu.'))))
+              ]))
+            ]);
+          }));
 }
 
 class Section extends StatelessWidget {
