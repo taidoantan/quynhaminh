@@ -480,7 +480,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.10';
+const _appVersion = '2.0.11';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
@@ -686,6 +686,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   DateTime month = DateTime(DateTime.now().year, DateTime.now().month);
+  String dashboardChartType = 'expense';
   void changeMonth(int delta) =>
       setState(() => month = DateTime(month.year, month.month + delta));
   @override
@@ -705,7 +706,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (!x.hasData)
               return const Center(child: CircularProgressIndicator());
             final d = x.data;
-            final cats = List<dynamic>.from(d['categories'] ?? []);
+            final allCats = List<dynamic>.from(d['categories'] ?? []);
+            final cats =
+                allCats.where((e) => '' == dashboardChartType).toList();
             return RefreshIndicator(
                 onRefresh: () async => widget.s.refresh(),
                 child: ListView(padding: const EdgeInsets.all(14), children: [
@@ -1551,6 +1554,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   int period = 1;
   DateTime selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   String? memberId, categoryId;
+  String reportChartType = 'expense';
   late Future<List<dynamic>> members;
   late Future<List<dynamic>> categories;
   @override
