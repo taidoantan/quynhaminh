@@ -474,7 +474,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.8';
+const _appVersion = '2.0.9';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
@@ -963,18 +963,26 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       appBar: topBar(context, widget.s, 'Giao dịch'),
       body: Column(children: [
         Padding(
-            padding: const EdgeInsets.fromLTRB(42, 14, 42, 10),
-            child: SegmentedButton<String>(
-                showSelectedIcon: false,
-                style: const ButtonStyle(
-                    shape: WidgetStatePropertyAll(StadiumBorder())),
-                segments: const [
-                  ButtonSegment(value: '', label: Text('Tất cả')),
-                  ButtonSegment(value: 'income', label: Text('Thu')),
-                  ButtonSegment(value: 'expense', label: Text('Chi'))
-                ],
-                selected: {filter},
-                onSelectionChanged: (v) => setState(() => filter = v.first))),
+            padding: const EdgeInsets.fromLTRB(24, 14, 24, 10),
+            child: Row(children: [
+              _TransactionFilter(
+                  label: 'Tất cả',
+                  color: blue,
+                  selected: filter.isEmpty,
+                  onTap: () => setState(() => filter = '')),
+              const SizedBox(width: 7),
+              _TransactionFilter(
+                  label: 'Thu',
+                  color: green,
+                  selected: filter == 'income',
+                  onTap: () => setState(() => filter = 'income')),
+              const SizedBox(width: 7),
+              _TransactionFilter(
+                  label: 'Chi',
+                  color: red,
+                  selected: filter == 'expense',
+                  onTap: () => setState(() => filter = 'expense')),
+            ])),
         Expanded(
             child: FutureBuilder<Map<String, dynamic>>(
                 key: ValueKey('${widget.s.revision}$filter'),
@@ -1031,6 +1039,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           children: rows));
                 }))
       ]));
+}
+
+class _TransactionFilter extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _TransactionFilter(
+      {required this.label,
+      required this.color,
+      required this.selected,
+      required this.onTap});
+  @override
+  Widget build(BuildContext context) => Expanded(
+      child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+              backgroundColor: selected ? color : Colors.white,
+              foregroundColor: selected ? Colors.white : color,
+              side: BorderSide(color: color),
+              minimumSize: const Size.fromHeight(46),
+              textStyle:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          onPressed: onTap,
+          child: Text(label)));
 }
 
 class TransactionTile extends StatelessWidget {
@@ -1168,19 +1200,28 @@ class _TransactionEditorState extends State<TransactionEditor> {
 
   Future<void> load() async {
     cats = await Api.list(widget.s.id, 'categories', query: 'type=$type');
-    accounts = await Api.list(widget.s.id, 'accounts');
-    members = await Api.list(widget.s.id, 'members');
+    accounts = (await Api.list(widget.s.id, 'accounts')).fold<List<dynamic>>([],
+        (all, item) {
+      if (!all.any((x) => '${x['id']}' == '${item['id']}')) all.add(item);
+      return all;
+    });
+    members = (await Api.list(widget.s.id, 'members')).fold<List<dynamic>>([],
+        (all, item) {
+      if (!all.any((x) => '${x['userId']}' == '${item['userId']}'))
+        all.add(item);
+      return all;
+    });
     final previous = await Api.transactions(widget.s.id, query: 'pageSize=100');
     history = List<dynamic>.from(previous['items'] ?? []);
-    cat = widget.editing?['categoryId']?.toString() ??
-        cats
-            .cast<dynamic>()
-            .firstWhere(
-                (e) =>
-                    widget.suggestion != null &&
-                    e['name'] == widget.suggestion!['category'],
-                orElse: () => cats.isEmpty ? null : cats.first)?['id']
-            ?.toString();
+    final editingCategory = widget.editing?['categoryId']?.toString();
+    final suggestedCategory = cats.cast<dynamic>().firstWhere(
+        (e) =>
+            widget.suggestion != null &&
+            e['name'] == widget.suggestion!['category'],
+        orElse: () => cats.isEmpty ? null : cats.first);
+    cat = cats.any((e) => '${e['id']}' == editingCategory)
+        ? editingCategory
+        : suggestedCategory?['id']?.toString();
     member = widget.editing?['createdBy']?.toString();
     account = widget.editing?['accountId']?.toString() ??
         (accounts.isEmpty ? null : '${accounts.first['id']}');
@@ -2910,3 +2951,4 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
+
