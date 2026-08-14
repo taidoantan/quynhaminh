@@ -1247,36 +1247,47 @@ class _TransactionEditorState extends State<TransactionEditor> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 96),
               children: [
-                  SegmentedButton<String>(
-                      showSelectedIcon: false,
-                      style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith(
-                              (states) => states.contains(WidgetState.selected)
-                                  ? accent.withValues(alpha: .15)
-                                  : Colors.white),
-                          foregroundColor: WidgetStateProperty.resolveWith(
-                              (states) => states.contains(WidgetState.selected)
-                                  ? accent
-                                  : const Color(0xff59657a)),
-                          side: WidgetStatePropertyAll(
-                              BorderSide(color: accent.withValues(alpha: .50))),
-                          textStyle: const WidgetStatePropertyAll(TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w800))),
-                      segments: const [
-                        ButtonSegment(
-                            value: 'income',
-                            icon: Icon(Icons.south_west_rounded),
-                            label: Text('Thu')),
-                        ButtonSegment(
-                            value: 'expense',
-                            icon: Icon(Icons.north_east_rounded),
-                            label: Text('Chi'))
-                      ],
-                      selected: {type},
-                      onSelectionChanged: (v) {
-                        setState(() => type = v.first);
-                        load();
-                      }),
+                  Row(children: [
+                    Expanded(
+                        child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    type == 'income' ? green : Colors.white,
+                                foregroundColor:
+                                    type == 'income' ? Colors.white : green,
+                                side: const BorderSide(color: green),
+                                minimumSize: const Size.fromHeight(52),
+                                textStyle: const TextStyle(
+                                    fontSize: 17, fontWeight: FontWeight.w800)),
+                            onPressed: () {
+                              if (type != 'income') {
+                                setState(() => type = 'income');
+                                load();
+                              }
+                            },
+                            icon: const Icon(Icons.south_west_rounded),
+                            label: const Text('Thu'))),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    type == 'expense' ? red : Colors.white,
+                                foregroundColor:
+                                    type == 'expense' ? Colors.white : red,
+                                side: const BorderSide(color: red),
+                                minimumSize: const Size.fromHeight(52),
+                                textStyle: const TextStyle(
+                                    fontSize: 17, fontWeight: FontWeight.w800)),
+                            onPressed: () {
+                              if (type != 'expense') {
+                                setState(() => type = 'expense');
+                                load();
+                              }
+                            },
+                            icon: const Icon(Icons.north_east_rounded),
+                            label: const Text('Chi')))
+                  ]),
                   const SizedBox(height: 18),
                   TextField(
                       controller: amount,
@@ -2870,4 +2881,3 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
-
