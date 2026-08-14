@@ -2165,6 +2165,7 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
+  String search = '';
   @override
   Widget build(BuildContext c) => Scaffold(
       appBar: AppBar(title: const Text('Danh mục chi tiêu')),
@@ -2216,6 +2217,29 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                   ])));
                     });
               })));
+  Future<void> _search(BuildContext c) async {
+    final controller = TextEditingController(text: search);
+    final value = await showDialog<String>(
+        context: c,
+        builder: (d) => AlertDialog(
+                title: const Text('Tìm danh mục'),
+                content: TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search_rounded),
+                        labelText: 'Tên danh mục')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(d),
+                      child: const Text('Hủy')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(d, controller.text),
+                      child: const Text('Tìm'))
+                ]));
+    if (value != null) setState(() => search = value);
+  }
+
   void _newCategory(BuildContext c) {
     final t = TextEditingController();
     showDialog(
