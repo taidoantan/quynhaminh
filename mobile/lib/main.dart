@@ -29,6 +29,13 @@ const blue = Color(0xff1769e0),
 String money(dynamic n) =>
     NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
         .format(num.tryParse('$n') ?? 0);
+Color balanceColor(dynamic value) {
+  final amount = num.tryParse('$value') ?? 0;
+  if (amount < 0) return red;
+  if (amount <= 1000000) return blue;
+  return green;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('vi_VN');
@@ -1636,68 +1643,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 child: MetricCard('Tổng chi', d['expense'], red,
                                     Icons.arrow_upward))
                           ]),
-                          Card(
-                              child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Số dư ${money(d['balance'])}',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 18)),
-                                        const SizedBox(height: 12),
-                                        ...cats.take(7).map((e) {
-                                          final value =
-                                              num.tryParse('${e['amount']}') ??
-                                                  0;
-                                          final total =
-                                              num.tryParse('${d['expense']}') ??
-                                                  0;
-                                          return Padding(
-                                              padding: const EdgeInsets.only(
-                                                  bottom: 8),
-                                              child: Row(children: [
-                                                Expanded(
-                                                    child:
-                                                        Text('${e['name']}')),
-                                                Text(money(value)),
-                                                const SizedBox(width: 8),
-                                                SizedBox(
-                                                    width: 80,
-                                                    child:
-                                                        LinearProgressIndicator(
-                                                            value: total == 0
-                                                                ? 0
-                                                                : (value /
-                                                                        total)
-                                                                    .clamp(0, 1)
-                                                                    .toDouble()))
-                                              ]));
-                                        }),
-                                        if (cats.isEmpty)
-                                          const Text(
-                                              'Chưa có giao dịch trong kỳ.')
-                                      ]))),
-                          Card(
-                              child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Diễn biến thu chi',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold)),
-                                        const SizedBox(height: 8),
-                                        ...days.take(8).map((e) => ListTile(
-                                            dense: true,
-                                            contentPadding: EdgeInsets.zero,
-                                            title: Text('${e['date']}'),
-                                            trailing: Text(
-                                                '+${money(e['income'])}  /  -${money(e['expense'])}')))
-                                      ]))),
+                          _ReportCharts(
+                              categories: cats,
+                              days: days,
+                              balance: d['balance'],
+                              totalExpense: d['expense']),
                           Row(children: [
                             Expanded(
                                 child: OutlinedButton.icon(
@@ -1725,6 +1675,141 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   });
             }),
       );
+}
+
+class _ReportCharts extends StatelessWidget {
+  final List<dynamic> categories, days;
+  final dynamic balance, totalExpense;
+  const _ReportCharts(
+      {required this.categories,
+      required this.days,
+      required this.balance,
+      required this.totalExpense});
+  @override
+  Widget build(BuildContext context) {
+    const colors = [
+      blue,
+      green,
+      Colors.orange,
+      Colors.purple,
+      red,
+      Colors.teal
+    ];
+    final cats = categories.take(6).toList();
+    final rows = days.take(12).toList();
+    final total = (num.tryParse('$totalExpense') ?? 0).toDouble();
+    return Column(children: [
+      Card(
+          child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Số dư ${money(balance)}',
+                        style: TextStyle(
+                            color: balanceColor(balance),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 10),
+                    const Text('Biến động thu chi theo ngày',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800, color: blue)),
+                    SizedBox(
+                        height: 180,
+                        child: BarChart(BarChartData(
+                            titlesData: const FlTitlesData(show: false),
+                            borderData: FlBorderData(show: false),
+                            barTouchData: BarTouchData(enabled: false),
+                            barGroups: rows
+                                .asMap()
+                                .entries
+                                .map((x) => BarChartGroupData(
+                                        x: x.key,
+                                        barsSpace: 3,
+                                        barRods: [
+                                          BarChartRodData(
+                                              toY: (num.tryParse(
+                                                          '${x.value['income']}') ??
+                                                      0)
+                                                  .toDouble(),
+                                              color: green,
+                                              width: 7),
+                                          BarChartRodData(
+                                              toY: (num.tryParse(
+                                                          '${x.value['expense']}') ??
+                                                      0)
+                                                  .toDouble(),
+                                              color: red,
+                                              width: 7)
+                                        ]))
+                                .toList()))),
+                    const Row(children: [
+                      Icon(Icons.circle, color: green, size: 10),
+                      Text(' Thu  '),
+                      Icon(Icons.circle, color: red, size: 10),
+                      Text(' Chi')
+                    ])
+                  ]))),
+      Card(
+          child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Chi tiêu theo danh mục',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800, color: blue)),
+                    const SizedBox(height: 10),
+                    if (cats.isEmpty)
+                      const Text('Chưa có chi tiêu trong kỳ.')
+                    else
+                      Row(children: [
+                        SizedBox(
+                            width: 135,
+                            height: 135,
+                            child: PieChart(PieChartData(
+                                centerSpaceRadius: 32,
+                                sections: cats
+                                    .asMap()
+                                    .entries
+                                    .map((x) => PieChartSectionData(
+                                        value: ((num.tryParse(
+                                                        '${x.value['amount']}') ??
+                                                    0)
+                                                .toDouble())
+                                            .clamp(.01, double.infinity),
+                                        color: colors[x.key % colors.length],
+                                        radius: 38,
+                                        showTitle: false))
+                                    .toList()))),
+                        const SizedBox(width: 10),
+                        Expanded(
+                            child: Column(
+                                children: cats.asMap().entries.map((x) {
+                          final amount =
+                              (num.tryParse('${x.value['amount']}') ?? 0)
+                                  .toDouble();
+                          return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 3),
+                              child: Row(children: [
+                                Icon(Icons.circle,
+                                    size: 10,
+                                    color: colors[x.key % colors.length]),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                    child: Text('${x.value['name']}',
+                                        style: const TextStyle(fontSize: 12))),
+                                Text(
+                                    '${money(amount)} (${total == 0 ? 0 : (amount * 100 / total).round()}%)',
+                                    style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700))
+                              ]));
+                        }).toList()))
+                      ])
+                  ]))),
+    ]);
+  }
 }
 
 void _showDownload(BuildContext c, String kind, String url) => showDialog(
