@@ -15,7 +15,9 @@ bool _isNewerVersion(String remote, String local) {
   List<int> parse(String v) =>
       v.split('+').first.split('.').map((x) => int.tryParse(x) ?? 0).toList();
   final a = parse(remote), b = parse(local);
-  for (var i = 0; i < 3; i++) {
+  for (var i = 0;
+      i < [a.length, b.length].reduce((x, y) => x > y ? x : y);
+      i++) {
     final x = i < a.length ? a[i] : 0, y = i < b.length ? b[i] : 0;
     if (x != y) return x > y;
   }
@@ -478,7 +480,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.9';
+const _appVersion = '2.0.9.1';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
@@ -822,12 +824,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           radius: 42,
                                           showTitle: false);
                                     }).toList())),
-                              )
+                              ),
+                            _DashboardCategoryLegend(items: cats)
                           ]),
                     ),
                   ),
                 ]));
           }));
+}
+
+class _DashboardCategoryLegend extends StatelessWidget {
+  final List<dynamic> items;
+  const _DashboardCategoryLegend({required this.items});
+  @override
+  Widget build(BuildContext context) {
+    const colors = [
+      blue,
+      green,
+      Colors.orange,
+      Colors.purple,
+      Colors.pink,
+      Colors.teal
+    ];
+    final total = items.fold<double>(
+        0, (v, e) => v + (num.tryParse('${e['amount']}') ?? 0).toDouble());
+    return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(
+            children: items.take(6).toList().asMap().entries.map((entry) {
+          final amount =
+              (num.tryParse('${entry.value['amount']}') ?? 0).toDouble();
+          return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(children: [
+                Icon(Icons.circle,
+                    size: 10, color: colors[entry.key % colors.length]),
+                const SizedBox(width: 7),
+                Expanded(
+                    child: Text('${entry.value['name']}',
+                        style: const TextStyle(fontSize: 12))),
+                Text(
+                    '${money(amount)} (${total == 0 ? 0 : (amount * 100 / total).round()}%)',
+                    style: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w700))
+              ]));
+        }).toList()));
+  }
 }
 
 class MetricCard extends StatelessWidget {
@@ -1306,7 +1348,11 @@ class _TransactionEditorState extends State<TransactionEditor> {
                                     fontSize: 17, fontWeight: FontWeight.w800)),
                             onPressed: () {
                               if (type != 'income') {
-                                setState(() => type = 'income');
+                                setState(() {
+                                  type = 'income';
+                                  cat = null;
+                                  cats = [];
+                                });
                                 load();
                               }
                             },
@@ -1326,7 +1372,11 @@ class _TransactionEditorState extends State<TransactionEditor> {
                                     fontSize: 17, fontWeight: FontWeight.w800)),
                             onPressed: () {
                               if (type != 'expense') {
-                                setState(() => type = 'expense');
+                                setState(() {
+                                  type = 'expense';
+                                  cat = null;
+                                  cats = [];
+                                });
                                 load();
                               }
                             },
