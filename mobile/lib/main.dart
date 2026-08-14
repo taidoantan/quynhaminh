@@ -947,55 +947,76 @@ class TransactionsScreen extends StatefulWidget {
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
   String filter = '';
-  @override
-  Widget build(BuildContext c) {
-    return Scaffold(
-        appBar: topBar(c, widget.s, 'Giao dịch'),
-        body: Column(children: [
-          Padding(
-              padding: const EdgeInsets.all(12),
-              child: SegmentedButton<String>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: '', label: Text('Tất cả')),
-                    ButtonSegment(value: 'income', label: Text('Thu')),
-                    ButtonSegment(value: 'expense', label: Text('Chi'))
-                  ],
-                  selected: {filter},
-                  onSelectionChanged: (v) => setState(() => filter = v.first))),
-          Expanded(
-              child: FutureBuilder<Map<String, dynamic>>(
-                  key: ValueKey('${widget.s.revision}$filter'),
-                  future: Api.transactions(widget.s.id,
-                      query: filter.isEmpty
-                          ? 'pageSize=200'
-                          : 'type=$filter&pageSize=200'),
-                  builder: (c, x) {
-                    if (x.hasError) {
-                      return ErrorView('${x.error}', widget.s.refresh);
-                    }
-                    if (!x.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final items = List<dynamic>.from(x.data!['items'] ?? []);
-                    return ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemCount: items.length,
-                        itemBuilder: (c, i) {
-                          final item = Map<String, dynamic>.from(items[i]);
-                          return TransactionTile(item,
-                              onTap: () => Navigator.push(
-                                      c,
-                                      MaterialPageRoute(
-                                          builder: (_) => TransactionEditor(
-                                              widget.s,
-                                              editing: item))).then((v) {
-                                    if (v == true) widget.s.refresh();
-                                  }));
-                        });
-                  }))
-        ]));
+  String _dayLabel(DateTime date) {
+    final today = DateTime.now();
+    final d = DateTime(date.year, date.month, date.day);
+    final now = DateTime(today.year, today.month, today.day);
+    if (d == now) return 'Hôm nay · ${DateFormat(''dd/MM/yyyy'').format(date)}';
+    if (d == now.subtract(const Duration(days: 1))) return 'Hôm qua · ${DateFormat(''dd/MM/yyyy'').format(date)}';
+    return DateFormat(''EEEE · dd/MM/yyyy'', ''vi_VN'').format(date);
   }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+      appBar: topBar(c, widget.s, 'Giao dịch', actions: [
+        IconButton(icon: const Icon(Icons.tune_rounded), onPressed: () {}),
+        IconButton(icon: const Icon(Icons.search_rounded), onPressed: () {})
+      ]),
+      body: Column(children: [
+        Padding(
+            padding: const EdgeInsets.fromLTRB(42, 14, 42, 10),
+            child: SegmentedButton<String>(
+                style: ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    side: const WidgetStatePropertyAll(BorderSide(color: Color(0xffb6c1d4))),
+                    shape: const WidgetStatePropertyAll(StadiumBorder())),
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: '', label: Text('Tất cả')),
+                  ButtonSegment(value: 'income', label: Text('Thu')),
+                  ButtonSegment(value: 'expense', label: Text('Chi'))
+                ],
+                selected: {filter},
+                onSelectionChanged: (v) => setState(() => filter = v.first))),
+        Expanded(child: FutureBuilder<Map<String, dynamic>>(
+            key: ValueKey('${widget.s.revision}$filter'),
+            future: Api.transactions(widget.s.id, query: filter.isEmpty ? 'pageSize=200' : 'type=$filter&pageSize=200'),
+            builder: (c, x) {
+              if (x.hasError) return ErrorView('${x.error}', widget.s.refresh);
+              if (!x.hasData) return const Center(child: CircularProgressIndicator());
+              final items = List<dynamic>.from(x.data!['items'] ?? []);
+              if (items.isEmpty) return const Center(child: Text('Chưa có giao dịch nào'));
+              final groups = <String, List<Map<String, dynamic>>>{};
+              final groupDates = <String, DateTime>{};
+              for (final raw in items) {
+                final item = Map<String, dynamic>.from(raw);
+                final date = DateTime.tryParse('${item['transactionDate']}') ?? DateTime.now();
+                final key = DateFormat(''yyyy-MM-dd'').format(date);
+                groups.putIfAbsent(key, () => []).add(item);
+                groupDates[key] = date;
+              }
+              final keys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
+              return RefreshIndicator(onRefresh: () async => widget.s.refresh(), child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(18, 4, 18, 96),
+                  itemCount: keys.fold<int>(0, (n, key) => n + 1 + groups[key]!.length),
+                  itemBuilder: (c, index) {
+                    var cursor = 0;
+                    for (final key in keys) {
+                      if (index == cursor) return Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 12, 8, 7),
+                          child: Text(_dayLabel(groupDates[key]!), style: const TextStyle(color: Color(0xff657188), fontSize: 12, fontWeight: FontWeight.w700)));
+                      cursor++;
+                      final group = groups[key]!;
+                      if (index < cursor + group.length) {
+                        final item = group[index - cursor];
+                        return TransactionTile(item, onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => TransactionEditor(widget.s, editing: item))).then((v) { if (v == true) widget.s.refresh(); }));
+                      }
+                      cursor += group.length;
+                    }
+                    return const SizedBox.shrink();
+                  }));
+            }))
+      ]));
 }
 
 class TransactionTile extends StatelessWidget {
@@ -1005,28 +1026,28 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext c) {
     final income = x['type'] == 'income';
+    final color = income ? green : red;
+    final time = DateTime.tryParse('${x['transactionDate']}');
+    final title = x['merchant']?.toString().trim();
     return Card(
-        child: ListTile(
-            onTap: onTap,
-            leading: CircleAvatar(
-                backgroundColor: (income ? green : red).withValues(alpha: .12),
-                child: Icon(
-                    income
-                        ? Icons.payments_outlined
-                        : Icons.shopping_bag_outlined,
-                    color: income ? green : red)),
-            title: Text(
-                '${x['merchant']?.toString().isNotEmpty == true ? x['merchant'] : income ? 'Khoản thu' : 'Khoản chi'}',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(
-                '${x['creatorName'] ?? ''} • ${('${x['transactionDate']}').split('T').first}'),
-            trailing: Text('${income ? '+' : '-'}${money(x['amount'])}',
-                style: TextStyle(
-                    color: income ? green : red,
-                    fontWeight: FontWeight.bold))));
+        margin: const EdgeInsets.only(bottom: 10),
+        child: InkWell(
+            borderRadius: BorderRadius.circular(20), onTap: onTap,
+            child: Padding(padding: const EdgeInsets.fromLTRB(14, 13, 10, 13), child: Row(children: [
+              CircleAvatar(radius: 23, backgroundColor: color.withValues(alpha: .13), child: Icon(income ? Icons.account_balance_wallet_outlined : Icons.shopping_bag_outlined, color: color)),
+              const SizedBox(width: 13),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title?.isNotEmpty == true ? title! : income ? 'Khoản thu' : 'Khoản chi', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xff1e293b))),
+                const SizedBox(height: 3),
+                Text('${x['categoryName'] ?? (income ? 'Thu nhập' : 'Chi tiêu')} · ${x['creatorName'] ?? ''}${time == null ? '' : ' · ${DateFormat(''HH:mm'').format(time.toLocal())}'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xff758197), fontSize: 12))
+              ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('${income ? '+' : '-'}${money(x['amount'])}', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14)),
+                const SizedBox(height: 3), const Icon(Icons.chevron_right_rounded, color: Color(0xff9aa6ba), size: 21)
+              ])
+            ]))));
   }
 }
-
 class _SuggestionChips extends StatelessWidget {
   final String label;
   final List<String> values;
@@ -2768,3 +2789,4 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
+
