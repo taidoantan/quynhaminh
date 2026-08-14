@@ -474,7 +474,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.8';
+const _appVersion = '2.0.9';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
@@ -2881,3 +2881,4 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
+
