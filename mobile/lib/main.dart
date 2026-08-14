@@ -46,6 +46,22 @@ class QuyNhaMinhApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: blue),
           scaffoldBackgroundColor: Colors.transparent,
           fontFamily: 'Roboto',
+          appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.transparent,
+              foregroundColor: blue,
+              elevation: 0,
+              titleTextStyle: TextStyle(
+                  color: blue, fontSize: 21, fontWeight: FontWeight.w800)),
+          navigationBarTheme: NavigationBarThemeData(
+              backgroundColor: Colors.white.withValues(alpha: .94),
+              indicatorColor: const Color(0xffdceaff),
+              labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+                  color: states.contains(WidgetState.selected)
+                      ? blue
+                      : const Color(0xff6b7280),
+                  fontWeight: states.contains(WidgetState.selected)
+                      ? FontWeight.w800
+                      : FontWeight.w600))),
           inputDecorationTheme: InputDecorationTheme(
               filled: true,
               fillColor: Colors.white.withValues(alpha: .92),
@@ -54,30 +70,11 @@ class QuyNhaMinhApp extends StatelessWidget {
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: const BorderSide(color: Color(0xffe5ebf5))),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xffe5ebf5))),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: blue, width: 1.4))),
-          cardTheme: CardThemeData(
-              elevation: 0,
-              color: Colors.white.withValues(alpha: .94),
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  side: const BorderSide(color: Color(0xffedf1f8))))),
-      builder: (context, child) => DecoratedBox(
-          decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                Color(0xffe8f3ff),
-                Color(0xfff7faff),
-                Color(0xfff4f7fc)
-              ])),
-          child: child ?? const SizedBox()),
+              enabledBorder:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xffe5ebf5))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: blue, width: 1.4))),
+          cardTheme: CardThemeData(elevation: 0, color: Colors.white.withValues(alpha: .94), margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xffedf1f8))))),
+      builder: (context, child) => DecoratedBox(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xffe8f3ff), Color(0xfff7faff), Color(0xfff4f7fc)])), child: child ?? const SizedBox()),
       home: const Gate());
 }
 
@@ -664,10 +661,10 @@ PreferredSizeWidget topBar(BuildContext c, AppState s, String title,
     AppBar(
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title,
-              style:
-                  const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              style: const TextStyle(
+                  color: blue, fontWeight: FontWeight.w800, fontSize: 20)),
           Text('${s.fund['name']}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey))
+              style: const TextStyle(fontSize: 11, color: blue))
         ]),
         actions: actions);
 
@@ -2951,4 +2948,3 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
-
