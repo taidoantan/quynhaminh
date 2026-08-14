@@ -1779,6 +1779,35 @@ class _ReceivedInvitationsScreenState extends State<ReceivedInvitationsScreen> {
           }));
 }
 
+class FundInfoDialog extends StatelessWidget {
+  final AppState s;
+  const FundInfoDialog(this.s, {super.key});
+  @override
+  Widget build(BuildContext context) {
+    final f = s.fund;
+    final code = '${f['inviteCode'] ?? f['code'] ?? 'Chưa có mã mời'}';
+    return AlertDialog(
+      title: const Text('Thông tin quỹ'),
+      content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${f['name'] ?? 'Quỹ Nhà Mình'}',
+                style: const TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.w800, color: blue)),
+            const SizedBox(height: 12),
+            Text('Mã mời: $code'),
+            const SizedBox(height: 6),
+            const Text('Bạn đang là thành viên của quỹ này.')
+          ]),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context), child: const Text('Đóng'))
+      ],
+    );
+  }
+}
+
 class MoreScreen extends StatelessWidget {
   final AppState s;
   const MoreScreen(this.s, {super.key});
@@ -1788,7 +1817,7 @@ class MoreScreen extends StatelessWidget {
       body: ListView(padding: const EdgeInsets.all(14), children: [
         Section('Quản lý quỹ', [
           Menu(Icons.info_outline, 'Thông tin quỹ',
-              () => showDialog(context: c, builder: (_) => JoinFundDialog(s))),
+              () => showDialog(context: c, builder: (_) => FundInfoDialog(s))),
           Menu(
               Icons.people_outline,
               'Thành viên và phân quyền',
@@ -1873,7 +1902,7 @@ class MoreScreen extends StatelessWidget {
             showAboutDialog(
                 context: c,
                 applicationName: 'Quỹ Nhà Mình',
-                applicationVersion: '2.0.4',
+                applicationVersion: _appVersion,
                 children: const [
                   Text(
                       'Quỹ Nhà Mình là ứng dụng quản lý thu chi gia đình, giúp mọi thành viên ghi chép minh bạch, cùng theo dõi ngân sách và xây dựng tổ ấm an tâm.\n\nPhần mềm thuộc PTSoft. PTSoft phát triển các giải pháp phần mềm thân thiện, bảo mật và thiết thực cho cá nhân, gia đình và doanh nghiệp.')
@@ -2881,5 +2910,3 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
-
-
