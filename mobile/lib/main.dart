@@ -2165,75 +2165,76 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
-  String type = 'expense';
   @override
-  Widget build(BuildContext c) {
-    return Scaffold(
-        appBar: AppBar(title: const Text('Danh mục')),
-        floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _newCategory(c),
-            icon: const Icon(Icons.add),
-            label: const Text('Thêm danh mục')),
-        body: SafeArea(
-            top: false,
-            child: Column(children: [
-              Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: SegmentedButton<String>(
-                      showSelectedIcon: false,
-                      segments: const [
-                        ButtonSegment(value: 'income', label: Text('Thu')),
-                        ButtonSegment(value: 'expense', label: Text('Chi'))
-                      ],
-                      selected: {type},
-                      onSelectionChanged: (v) =>
-                          setState(() => type = v.first))),
-              Expanded(
-                  child: FutureBuilder<List<dynamic>>(
-                      future: Api.list(widget.s.id, 'categories',
-                          query: 'type=$type'),
-                      builder: (c, x) {
-                        if (!x.hasData) {
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        }
-                        return ListView(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            children: [
-                              for (final e in x.data!)
-                                Card(
-                                    child: ListTile(
-                                        leading: CircleAvatar(
-                                            backgroundColor: _categoryColor(
-                                                    '${e['color'] ?? '#1769E0'}')
-                                                .withValues(alpha: .14),
-                                            child: Icon(
-                                                _categoryIcon(
-                                                    '${e['icon'] ?? ''}', type),
-                                                color: _categoryColor(
-                                                    '${e['color'] ?? '#1769E0'}'))),
-                                        title: Text('${e['name']}'))),
-                            ]);
-                      }))
-            ])));
-  }
-
+  Widget build(BuildContext c) => Scaffold(
+      appBar: AppBar(title: const Text('Danh mục chi tiêu')),
+      floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _newCategory(c),
+          icon: const Icon(Icons.add),
+          label: const Text('Thêm danh mục')),
+      body: SafeArea(
+          top: false,
+          child: FutureBuilder<List<dynamic>>(
+              future:
+                  Api.list(widget.s.id, 'categories', query: 'type=expense'),
+              builder: (c, snap) {
+                if (!snap.hasData)
+                  return const Center(child: CircularProgressIndicator());
+                final items = snap.data!;
+                return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisExtent: 100,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10),
+                    itemCount: items.length,
+                    itemBuilder: (_, i) {
+                      final e = items[i];
+                      final color =
+                          _categoryColor('${e['color'] ?? '#1769E0'}');
+                      return Card(
+                          child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: () {},
+                              child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    CircleAvatar(
+                                        radius: 22,
+                                        backgroundColor:
+                                            color.withValues(alpha: .14),
+                                        child: Icon(
+                                            _categoryIcon('${e['icon'] ?? ''}',
+                                                'expense'),
+                                            color: color)),
+                                    const SizedBox(height: 8),
+                                    Text('${e['name']}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600))
+                                  ])));
+                    });
+              })));
   void _newCategory(BuildContext c) {
     final t = TextEditingController();
     showDialog(
         context: c,
         builder: (_) => AlertDialog(
-                title: const Text('Thêm danh mục'),
+                title: const Text('Thêm danh mục chi tiêu'),
                 content: TextField(
                     controller: t,
                     decoration:
                         const InputDecoration(labelText: 'Tên danh mục')),
                 actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(c),
+                      child: const Text('Hủy')),
                   FilledButton(
                       onPressed: () async {
                         await Api.save(widget.s.id, 'categories', {
                           'name': t.text,
-                          'type': type,
+                          'type': 'expense',
                           'icon': 'category',
                           'color': '#1769E0'
                         });
