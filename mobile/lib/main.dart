@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'core/api.dart';
 
@@ -28,7 +29,11 @@ const blue = Color(0xff1769e0),
 String money(dynamic n) =>
     NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
         .format(num.tryParse('$n') ?? 0);
-void main() => runApp(const QuyNhaMinhApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('vi_VN');
+  runApp(const QuyNhaMinhApp());
+}
 
 class QuyNhaMinhApp extends StatelessWidget {
   const QuyNhaMinhApp({super.key});
@@ -39,7 +44,7 @@ class QuyNhaMinhApp extends StatelessWidget {
       theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: blue),
-          scaffoldBackgroundColor: bg,
+          scaffoldBackgroundColor: Colors.transparent,
           fontFamily: 'Roboto',
           inputDecorationTheme: InputDecorationTheme(
               filled: true,
@@ -62,6 +67,17 @@ class QuyNhaMinhApp extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                   side: const BorderSide(color: Color(0xffedf1f8))))),
+      builder: (context, child) => DecoratedBox(
+          decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                Color(0xffe8f3ff),
+                Color(0xfff7faff),
+                Color(0xfff4f7fc)
+              ])),
+          child: child ?? const SizedBox()),
       home: const Gate());
 }
 
@@ -458,7 +474,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.5';
+const _appVersion = '2.0.6';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
@@ -1179,7 +1195,22 @@ class _TransactionEditorState extends State<TransactionEditor> {
                       decoration: const InputDecoration(labelText: 'Danh mục'),
                       items: cats
                           .map((e) => DropdownMenuItem(
-                              value: '${e['id']}', child: Text('${e['name']}')))
+                              value: '${e['id']}',
+                              child: Row(children: [
+                                CircleAvatar(
+                                    radius: 15,
+                                    backgroundColor: _categoryColor(
+                                            '${e['color'] ?? '#1769E0'}')
+                                        .withValues(alpha: .14),
+                                    child: Icon(
+                                        _categoryIcon(
+                                            '${e['icon'] ?? ''}', type),
+                                        size: 17,
+                                        color: _categoryColor(
+                                            '${e['color'] ?? '#1769E0'}'))),
+                                const SizedBox(width: 10),
+                                Text('${e['name']}')
+                              ])))
                           .toList(),
                       onChanged: (v) => setState(() => cat = v)),
                   const SizedBox(height: 12),
