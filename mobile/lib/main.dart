@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -40,14 +41,27 @@ class QuyNhaMinhApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: blue),
           scaffoldBackgroundColor: bg,
           fontFamily: 'Roboto',
-          inputDecorationTheme: const InputDecorationTheme(
-              border: OutlineInputBorder(),
+          inputDecorationTheme: InputDecorationTheme(
               filled: true,
-              fillColor: Colors.white),
-          cardTheme: const CardThemeData(
+              fillColor: Colors.white.withValues(alpha: .92),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xffe5ebf5))),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xffe5ebf5))),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: blue, width: 1.4))),
+          cardTheme: CardThemeData(
               elevation: 0,
-              color: Colors.white,
-              margin: EdgeInsets.symmetric(vertical: 6))),
+              color: Colors.white.withValues(alpha: .94),
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: const BorderSide(color: Color(0xffedf1f8))))),
       home: const Gate());
 }
 
@@ -633,97 +647,159 @@ PreferredSizeWidget topBar(BuildContext c, AppState s, String title,
         ]),
         actions: actions);
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final AppState s;
   const DashboardScreen(this.s, {super.key});
   @override
-  Widget build(BuildContext c) {
-    final n = DateTime.now();
-    return Scaffold(
-        appBar: topBar(c, s, 'Tổng quan', actions: [
-          IconButton(
-              onPressed: () => Navigator.push(
-                  c, MaterialPageRoute(builder: (_) => RemindersScreen(s))),
-              icon: const Icon(Icons.notifications_none))
-        ]),
-        body: FutureBuilder<dynamic>(
-            key: ValueKey('${s.id}-${s.revision}'),
-            future: Api.dashboard(s.id, n.year, n.month),
-            builder: (c, x) {
-              if (x.hasError) return ErrorView('${x.error}', s.refresh);
-              if (!x.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final d = x.data;
-              final cats = List<dynamic>.from(d['categories'] ?? []);
-              return RefreshIndicator(
-                  onRefresh: () async => s.refresh(),
-                  child: ListView(padding: const EdgeInsets.all(14), children: [
-                    Row(children: [
-                      Expanded(
-                          child: MetricCard('Tổng thu', d['income'], green,
-                              Icons.south_west)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child: MetricCard(
-                              'Tổng chi', d['expense'], red, Icons.north_east))
-                    ]),
-                    Card(
-                        child: Padding(
-                            padding: const EdgeInsets.all(18),
-                            child: Row(children: [
-                              Expanded(
-                                  child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                    const Text('Số dư'),
-                                    Text(money(d['balance']),
-                                        style: const TextStyle(
-                                            color: blue,
-                                            fontSize: 25,
-                                            fontWeight: FontWeight.bold))
-                                  ])),
-                              const SizedBox(
-                                  width: 120, height: 55, child: MiniChart())
-                            ]))),
-                    Row(children: [
-                      Expanded(
-                          child: SmallMetric('Chi hôm nay', d['todayExpense'])),
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child:
-                              SmallMetric('Chi tháng này', d['monthExpense']))
-                    ]),
-                    Card(
-                        child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(children: [
-                              CompareRow('Tổng thu so tháng trước',
-                                  d['incomeChangePercent'], green),
-                              CompareRow('Tổng chi so tháng trước',
-                                  d['expenseChangePercent'], red)
-                            ]))),
-                    Card(
-                        child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Chi tiêu theo danh mục',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold)),
-                                  if (cats.isEmpty)
-                                    const Padding(
-                                        padding: EdgeInsets.all(20),
-                                        child: Text('Chưa có giao dịch')),
-                                  for (final e in cats.take(6))
-                                    CategoryProgress('${e['name']}',
-                                        e['amount'], d['expense'])
-                                ])))
-                  ]));
-            }));
-  }
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  DateTime month = DateTime(DateTime.now().year, DateTime.now().month);
+  void changeMonth(int delta) =>
+      setState(() => month = DateTime(month.year, month.month + delta));
+  @override
+  Widget build(BuildContext c) => Scaffold(
+      appBar: topBar(c, widget.s, 'Tổng quan', actions: [
+        IconButton(
+            onPressed: () => Navigator.push(c,
+                MaterialPageRoute(builder: (_) => RemindersScreen(widget.s))),
+            icon: const Icon(Icons.notifications_none))
+      ]),
+      body: FutureBuilder<dynamic>(
+          key: ValueKey(
+              '${widget.s.id}-${widget.s.revision}-${month.year}-${month.month}'),
+          future: Api.dashboard(widget.s.id, month.year, month.month),
+          builder: (c, x) {
+            if (x.hasError) return ErrorView('${x.error}', widget.s.refresh);
+            if (!x.hasData)
+              return const Center(child: CircularProgressIndicator());
+            final d = x.data;
+            final cats = List<dynamic>.from(d['categories'] ?? []);
+            return RefreshIndicator(
+                onRefresh: () async => widget.s.refresh(),
+                child: ListView(padding: const EdgeInsets.all(14), children: [
+                  Card(
+                      child: Row(children: [
+                    IconButton(
+                        onPressed: () => changeMonth(-1),
+                        icon: const Icon(Icons.chevron_left_rounded)),
+                    Expanded(
+                        child: InkWell(
+                            onTap: () async {
+                              final pick = await showDatePicker(
+                                  context: c,
+                                  initialDate: month,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2100),
+                                  initialDatePickerMode: DatePickerMode.year);
+                              if (pick != null)
+                                setState(() =>
+                                    month = DateTime(pick.year, pick.month));
+                            },
+                            child: Center(
+                                child: Text(
+                                    DateFormat('MMMM, yyyy', 'vi_VN')
+                                        .format(month),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700))))),
+                    IconButton(
+                        onPressed: () => changeMonth(1),
+                        icon: const Icon(Icons.chevron_right_rounded))
+                  ])),
+                  Row(children: [
+                    Expanded(
+                        child: MetricCard(
+                            'Tổng thu', d['income'], green, Icons.south_west)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: MetricCard(
+                            'Tổng chi', d['expense'], red, Icons.north_east))
+                  ]),
+                  Card(
+                      child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Row(children: [
+                            Expanded(
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                  const Text('Số dư',
+                                      style: TextStyle(color: Colors.grey)),
+                                  Text(money(d['balance']),
+                                      style: const TextStyle(
+                                          color: blue,
+                                          fontSize: 25,
+                                          fontWeight: FontWeight.bold))
+                                ])),
+                            const SizedBox(
+                                width: 120, height: 55, child: MiniChart())
+                          ]))),
+                  Row(children: [
+                    Expanded(
+                        child: SmallMetric('Chi hôm nay', d['todayExpense'])),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: SmallMetric('Chi tháng này', d['monthExpense']))
+                  ]),
+                  Card(
+                      child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(children: [
+                            CompareRow('Tổng thu so tháng trước',
+                                d['incomeChangePercent'], green),
+                            CompareRow('Tổng chi so tháng trước',
+                                d['expenseChangePercent'], red)
+                          ]))),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Biểu đồ chi tiêu theo danh mục',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                            if (cats.isEmpty)
+                              const Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Text('Chưa có giao dịch'))
+                            else
+                              SizedBox(
+                                height: 190,
+                                child: PieChart(PieChartData(
+                                    centerSpaceRadius: 38,
+                                    sections: cats
+                                        .take(6)
+                                        .toList()
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
+                                      final value = (num.tryParse(
+                                                  '${entry.value['amount']}') ??
+                                              0)
+                                          .toDouble();
+                                      const colors = [
+                                        blue,
+                                        green,
+                                        Colors.orange,
+                                        Colors.purple,
+                                        Colors.pink,
+                                        Colors.teal
+                                      ];
+                                      return PieChartSectionData(
+                                          value: value == 0 ? .01 : value,
+                                          color: colors[entry.key],
+                                          radius: 42,
+                                          showTitle: false);
+                                    }).toList())),
+                              )
+                          ]),
+                    ),
+                  ),
+                ]));
+          }));
 }
 
 class MetricCard extends StatelessWidget {
@@ -936,20 +1012,27 @@ class _SuggestionChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: Theme.of(context).textTheme.labelSmall),
-        const SizedBox(height: 3),
-        Wrap(
-            spacing: 6,
-            runSpacing: 2,
-            children: values
-                .map((v) =>
-                    ActionChip(label: Text(v), onPressed: () => onPick(v)))
-                .toList()),
-      ]),
-    );
+    return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+            onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                showDragHandle: true,
+                builder: (sheet) => SafeArea(
+                        child: ListView(shrinkWrap: true, children: [
+                      Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+                          child: Text(label,
+                              style: Theme.of(context).textTheme.titleMedium)),
+                      ...values.map((v) => ListTile(
+                          title: Text(v),
+                          onTap: () {
+                            onPick(v);
+                            Navigator.pop(sheet);
+                          }))
+                    ]))),
+            icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+            label: Text(label)));
   }
 }
 
@@ -967,8 +1050,8 @@ class _TransactionEditorState extends State<TransactionEditor> {
   final amount = TextEditingController(),
       merchant = TextEditingController(),
       note = TextEditingController();
-  List<dynamic> cats = [], accounts = [], history = [];
-  String? cat, account;
+  List<dynamic> cats = [], accounts = [], history = [], members = [];
+  String? cat, account, member;
   DateTime date = DateTime.now();
   bool busy = true;
   @override
@@ -991,6 +1074,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
   Future<void> load() async {
     cats = await Api.list(widget.s.id, 'categories', query: 'type=$type');
     accounts = await Api.list(widget.s.id, 'accounts');
+    members = await Api.list(widget.s.id, 'members');
     final previous = await Api.transactions(widget.s.id, query: 'pageSize=100');
     history = List<dynamic>.from(previous['items'] ?? []);
     cat = widget.editing?['categoryId']?.toString() ??
@@ -1002,6 +1086,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
                     e['name'] == widget.suggestion!['category'],
                 orElse: () => cats.isEmpty ? null : cats.first)?['id']
             ?.toString();
+    member = widget.editing?['createdBy']?.toString();
     account = widget.editing?['accountId']?.toString() ??
         (accounts.isEmpty ? null : '${accounts.first['id']}');
     if (mounted) setState(() => busy = false);
@@ -1024,6 +1109,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
             'categoryId': cat,
             'accountId': account,
             'type': type,
+            'memberId': member,
             'amount':
                 num.parse(amount.text.replaceAll('.', '').replaceAll(',', '.')),
             'transactionDate': date.toUtc().toIso8601String(),
@@ -1047,127 +1133,164 @@ class _TransactionEditorState extends State<TransactionEditor> {
       appBar: AppBar(
           title: Text(
               widget.editing == null ? 'Thêm giao dịch' : 'Sửa giao dịch')),
+      bottomNavigationBar: busy
+          ? null
+          : SafeArea(
+              minimum: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+              child: FilledButton.icon(
+                  onPressed: save,
+                  icon: const Icon(Icons.save_rounded),
+                  label: const Text('Lưu giao dịch'))),
       body: busy
           ? const Center(child: CircularProgressIndicator())
-          : ListView(padding: const EdgeInsets.all(18), children: [
-              SegmentedButton<String>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: 'income', label: Text('Thu')),
-                    ButtonSegment(value: 'expense', label: Text('Chi'))
-                  ],
-                  selected: {type},
-                  onSelectionChanged: (v) {
-                    setState(() => type = v.first);
-                    load();
-                  }),
-              const SizedBox(height: 18),
-              TextField(
-                  controller: amount,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(
-                      fontSize: 26, fontWeight: FontWeight.bold),
-                  decoration: const InputDecoration(
-                      labelText: 'Số tiền', suffixText: '₫')),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                  initialValue: cat,
-                  decoration: const InputDecoration(labelText: 'Danh mục'),
-                  items: cats
-                      .map((e) => DropdownMenuItem(
-                          value: '${e['id']}', child: Text('${e['name']}')))
-                      .toList(),
-                  onChanged: (v) => setState(() => cat = v)),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                  initialValue: account,
-                  decoration:
-                      const InputDecoration(labelText: 'Tài khoản tiền'),
-                  items: accounts
-                      .map((e) => DropdownMenuItem(
-                          value: '${e['id']}',
-                          child: Text('${e['name']} • ${money(e['balance'])}')))
-                      .toList(),
-                  onChanged: (v) => setState(() => account = v)),
-              const SizedBox(height: 12),
-              ListTile(
-                  tileColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      side: const BorderSide(color: Color(0xffdddddd))),
-                  leading: const Icon(Icons.calendar_month),
-                  title: Text(DateFormat('dd/MM/yyyy').format(date)),
-                  onTap: () async {
-                    final d = await showDatePicker(
-                        context: c,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                        initialDate: date);
-                    if (d != null) setState(() => date = d);
-                  }),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: merchant,
-                  decoration:
-                      const InputDecoration(labelText: 'Cửa hàng / nguồn thu')),
-              _SuggestionChips(
-                  label: 'Gợi ý đã nhập',
-                  values: history
-                      .map((e) => '${e['merchant'] ?? ''}'.trim())
-                      .where((v) => v.isNotEmpty)
-                      .toSet()
-                      .take(8)
-                      .toList(),
-                  onPick: (v) => setState(() => merchant.text = v)),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: note,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                      labelText: 'Mô tả (không bắt buộc)')),
-              _SuggestionChips(
-                  label: 'Mô tả đã dùng',
-                  values: history
-                      .map((e) => '${e['note'] ?? ''}'.trim())
-                      .where((v) => v.isNotEmpty)
-                      .toSet()
-                      .take(8)
-                      .toList(),
-                  onPick: (v) => setState(() => note.text = v)),
-              const SizedBox(height: 18),
-              OutlinedButton.icon(
-                  onPressed: () => Navigator.push(
-                              c,
-                              MaterialPageRoute(
-                                  builder: (_) => ReceiptScanScreen(widget.s)))
-                          .then((v) {
-                        if (v is Map && c.mounted) {
-                          Navigator.pushReplacement(
-                              c,
-                              MaterialPageRoute(
-                                  builder: (_) => TransactionEditor(widget.s,
-                                      suggestion:
-                                          Map<String, dynamic>.from(v))));
-                        }
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 96),
+              children: [
+                  SegmentedButton<String>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(value: 'income', label: Text('Thu')),
+                        ButtonSegment(value: 'expense', label: Text('Chi'))
+                      ],
+                      selected: {type},
+                      onSelectionChanged: (v) {
+                        setState(() => type = v.first);
+                        load();
                       }),
-                  icon: const Icon(Icons.document_scanner),
-                  label: const Text('Quét hóa đơn bằng Gemini AI')),
-              const SizedBox(height: 8),
-              FilledButton.icon(
-                  onPressed: save,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Lưu giao dịch')),
-              if (widget.editing != null)
-                TextButton.icon(
-                    onPressed: () async {
-                      await Api.remove(widget.s.id, 'transactions',
-                          '${widget.editing!['id']}');
-                      if (c.mounted) Navigator.pop(c, true);
-                    },
-                    icon: const Icon(Icons.delete_outline, color: red),
-                    label: const Text('Chuyển vào thùng rác',
-                        style: TextStyle(color: red)))
-            ]));
+                  const SizedBox(height: 18),
+                  TextField(
+                      controller: amount,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(
+                          fontSize: 26, fontWeight: FontWeight.bold),
+                      decoration: const InputDecoration(
+                          labelText: 'Số tiền', suffixText: '₫')),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                      initialValue: cat,
+                      decoration: const InputDecoration(labelText: 'Danh mục'),
+                      items: cats
+                          .map((e) => DropdownMenuItem(
+                              value: '${e['id']}', child: Text('${e['name']}')))
+                          .toList(),
+                      onChanged: (v) => setState(() => cat = v)),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                      initialValue: account,
+                      decoration:
+                          const InputDecoration(labelText: 'Tài khoản tiền'),
+                      items: accounts
+                          .map((e) => DropdownMenuItem(
+                              value: '${e['id']}',
+                              child: Text(
+                                  '${e['name']} • ${money(e['balance'])}')))
+                          .toList(),
+                      onChanged: (v) => setState(() => account = v)),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                      initialValue: member,
+                      decoration:
+                          const InputDecoration(labelText: 'Thành viên'),
+                      hint: const Text('Người nhập giao dịch'),
+                      items: members
+                          .map((e) => DropdownMenuItem(
+                              value: '${e['userId']}',
+                              child: Text('${e['displayName']}')))
+                          .toList(),
+                      onChanged: (v) => setState(() => member = v)),
+                  const SizedBox(height: 12),
+                  ListTile(
+                      tileColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          side: const BorderSide(color: Color(0xffdddddd))),
+                      leading: const Icon(Icons.calendar_month),
+                      title: Text(DateFormat('dd/MM/yyyy').format(date)),
+                      onTap: () async {
+                        final d = await showDatePicker(
+                            context: c,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                            initialDate: date);
+                        if (d != null)
+                          setState(() => date = DateTime(
+                              d.year, d.month, d.day, date.hour, date.minute));
+                      }),
+                  const SizedBox(height: 8),
+                  ListTile(
+                      tileColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: const BorderSide(color: Color(0xffe5ebf5))),
+                      leading: const Icon(Icons.access_time_rounded),
+                      title: Text(DateFormat('HH:mm').format(date)),
+                      onTap: () async {
+                        final t = await showTimePicker(
+                            context: c,
+                            initialTime: TimeOfDay.fromDateTime(date));
+                        if (t != null)
+                          setState(() => date = DateTime(date.year, date.month,
+                              date.day, t.hour, t.minute));
+                      }),
+                  const SizedBox(height: 12),
+                  TextField(
+                      controller: merchant,
+                      decoration: const InputDecoration(
+                          labelText: 'Cửa hàng / nguồn thu')),
+                  _SuggestionChips(
+                      label: 'Chọn cửa hàng đã nhập',
+                      values: history
+                          .map((e) => '${e['merchant'] ?? ''}'.trim())
+                          .where((v) => v.isNotEmpty)
+                          .toSet()
+                          .take(8)
+                          .toList(),
+                      onPick: (v) => setState(() => merchant.text = v)),
+                  const SizedBox(height: 12),
+                  TextField(
+                      controller: note,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                          labelText: 'Mô tả (không bắt buộc)')),
+                  _SuggestionChips(
+                      label: 'Chọn mô tả đã dùng',
+                      values: history
+                          .map((e) => '${e['note'] ?? ''}'.trim())
+                          .where((v) => v.isNotEmpty)
+                          .toSet()
+                          .take(8)
+                          .toList(),
+                      onPick: (v) => setState(() => note.text = v)),
+                  const SizedBox(height: 18),
+                  OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                              c,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      ReceiptScanScreen(widget.s))).then((v) {
+                            if (v is Map && c.mounted) {
+                              Navigator.pushReplacement(
+                                  c,
+                                  MaterialPageRoute(
+                                      builder: (_) => TransactionEditor(
+                                          widget.s,
+                                          suggestion:
+                                              Map<String, dynamic>.from(v))));
+                            }
+                          }),
+                      icon: const Icon(Icons.document_scanner),
+                      label: const Text('Đính kèm / quét hóa đơn')),
+                  if (widget.editing != null)
+                    TextButton.icon(
+                        onPressed: () async {
+                          await Api.remove(widget.s.id, 'transactions',
+                              '${widget.editing!['id']}');
+                          if (c.mounted) Navigator.pop(c, true);
+                        },
+                        icon: const Icon(Icons.delete_outline, color: red),
+                        label: const Text('Chuyển vào thùng rác',
+                            style: TextStyle(color: red)))
+                ]));
 }
 
 class ReportsScreen extends StatefulWidget {
@@ -1179,6 +1302,7 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   int period = 1;
+  DateTime selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   String? memberId, categoryId;
   late Future<List<dynamic>> members;
   late Future<List<dynamic>> categories;
@@ -1190,7 +1314,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   String get query {
-    final n = DateTime.now();
+    final n = selectedMonth;
     final from = period == 0
         ? DateTime(n.year, n.month, n.day)
         : period == 2
@@ -1238,6 +1362,43 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               },
                               onSelectionChanged: (v) =>
                                   setState(() => period = v.first)),
+                          if (period == 1)
+                            Card(
+                                child: Row(children: [
+                              IconButton(
+                                  onPressed: () => setState(() =>
+                                      selectedMonth = DateTime(
+                                          selectedMonth.year,
+                                          selectedMonth.month - 1)),
+                                  icon: const Icon(Icons.chevron_left_rounded)),
+                              Expanded(
+                                  child: InkWell(
+                                      onTap: () async {
+                                        final d = await showDatePicker(
+                                            context: c,
+                                            initialDate: selectedMonth,
+                                            firstDate: DateTime(2020),
+                                            lastDate: DateTime(2100),
+                                            initialDatePickerMode:
+                                                DatePickerMode.year);
+                                        if (d != null)
+                                          setState(() => selectedMonth =
+                                              DateTime(d.year, d.month));
+                                      },
+                                      child: Center(
+                                          child: Text(
+                                              DateFormat('MMMM, yyyy', 'vi_VN')
+                                                  .format(selectedMonth),
+                                              style: const TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))))),
+                              IconButton(
+                                  onPressed: () => setState(() =>
+                                      selectedMonth = DateTime(
+                                          selectedMonth.year,
+                                          selectedMonth.month + 1)),
+                                  icon: const Icon(Icons.chevron_right_rounded))
+                            ])),
                           Card(
                               child: Padding(
                                   padding: const EdgeInsets.all(10),
@@ -1551,13 +1712,16 @@ class MoreScreen extends StatelessWidget {
                         const Text(
                             'JWT, phân quyền theo quỹ; khóa Gemini chỉ nằm trên máy chủ.')
                       ])),
-          Menu(
-              Icons.info_outline,
-              'Giới thiệu ứng dụng',
-              () => showAboutDialog(
-                  context: c,
-                  applicationName: 'Quỹ Nhà Mình',
-                  applicationVersion: '2.0.0')),
+          Menu(Icons.info_outline, 'Giới thiệu ứng dụng', () {
+            showAboutDialog(
+                context: c,
+                applicationName: 'Quỹ Nhà Mình',
+                applicationVersion: '2.0.4',
+                children: const [
+                  Text(
+                      'Quỹ Nhà Mình là ứng dụng quản lý thu chi gia đình, giúp mọi thành viên ghi chép minh bạch, cùng theo dõi ngân sách và xây dựng tổ ấm an tâm.\n\nPhần mềm thuộc PTSoft. PTSoft phát triển các giải pháp phần mềm thân thiện, bảo mật và thiết thực cho cá nhân, gia đình và doanh nghiệp.')
+                ]);
+          }),
           Menu(Icons.logout, 'Đăng xuất', () async {
             final ok = await showDialog<bool>(
                 context: c,
@@ -1616,12 +1780,52 @@ class Menu extends StatelessWidget {
       onTap: onTap);
 }
 
+Future<void> _editDisplayName(BuildContext context) async {
+  try {
+    final me = await Api.me();
+    final controller =
+        TextEditingController(text: '${me['displayName'] ?? ''}');
+    if (!context.mounted) return;
+    final name = await showDialog<String>(
+        context: context,
+        builder: (d) => AlertDialog(
+                title: const Text('Sửa tên hiển thị'),
+                content: TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration:
+                        const InputDecoration(labelText: 'Tên hiển thị')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(d),
+                      child: const Text('Hủy')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(d, controller.text),
+                      child: const Text('Lưu'))
+                ]));
+    if (name == null || name.trim().isEmpty) return;
+    await Api.updateProfile(name.trim());
+    if (context.mounted)
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã cập nhật tên hiển thị.')));
+  } on ApiError catch (e) {
+    if (context.mounted)
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+  }
+}
+
 class MembersScreen extends StatelessWidget {
   final AppState s;
   const MembersScreen(this.s, {super.key});
   @override
   Widget build(BuildContext c) => Scaffold(
-      appBar: AppBar(title: const Text('Thành viên')),
+      appBar: AppBar(title: const Text('Thành viên'), actions: [
+        IconButton(
+            tooltip: 'Sửa tên hiển thị',
+            onPressed: () => _editDisplayName(c),
+            icon: const Icon(Icons.edit_outlined))
+      ]),
       body: FutureBuilder<List<dynamic>>(
           future: Api.list(s.id, 'members'),
           builder: (c, x) {
@@ -1783,6 +1987,12 @@ class InviteScreen extends StatelessWidget {
 IconData _categoryIcon(String icon, String type) {
   const icons = <String, IconData>{
     'restaurant': Icons.restaurant_rounded,
+    'utensils': Icons.restaurant_rounded,
+    'water_drop': Icons.water_drop_rounded,
+    'favorite': Icons.favorite_rounded,
+    'sports_esports': Icons.sports_esports_rounded,
+    'more_horiz': Icons.more_horiz_rounded,
+    'category': Icons.category_rounded,
     'local_dining': Icons.restaurant_rounded,
     'directions_car': Icons.directions_car_rounded,
     'home': Icons.home_rounded,

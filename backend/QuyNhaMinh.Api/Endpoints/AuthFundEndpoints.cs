@@ -15,6 +15,7 @@ public static class AuthFundEndpoints {
         auth.MapPost("/forgot-password", ForgotPassword).AllowAnonymous();
         auth.MapPost("/reset-password", ResetPassword).AllowAnonymous();
         auth.MapGet("/me", Me).RequireAuthorization();
+        auth.MapPut("/me", UpdateProfile).RequireAuthorization();
         auth.MapGet("/invitations", ListDirectInvitations).RequireAuthorization();
         auth.MapPost("/invitations/{invitationId:guid}/accept", AcceptDirectInvitation).RequireAuthorization();
         auth.MapPost("/invitations/{invitationId:guid}/decline", DeclineDirectInvitation).RequireAuthorization();
@@ -81,6 +82,12 @@ public static class AuthFundEndpoints {
         return user is null ? Results.Unauthorized() : Results.Ok(new { user.Id, user.DisplayName, user.Email });
     }
 
+    private static async Task<IResult> UpdateProfile(UpdateProfileRequest x, CurrentUser current, AppDb db) {
+        var name = x.DisplayName.Trim();
+        if (name.Length < 2 || name.Length > 60) return Results.BadRequest(new { message = "Tên hiển thị cần từ 2 đến 60 ký tự." });
+        var user = await db.Users.FindAsync(current.Id); if (user is null) return Results.Unauthorized();
+        user.DisplayName = name; await db.SaveChangesAsync(); return Results.Ok(new { user.Id, user.DisplayName, user.Email });
+    }
     private static async Task<IResult> ListFunds(CurrentUser current, AppDb db) {
         var data = await db.FundMembers.Where(m => m.UserId == current.Id).OrderBy(m => m.Fund.Name).Select(m => new { m.FundId, m.Fund.Name, m.Fund.InviteCode, m.Role, MemberCount = m.Fund.Members.Count }).ToListAsync();
         return Results.Ok(data);

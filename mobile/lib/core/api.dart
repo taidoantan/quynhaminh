@@ -103,6 +103,10 @@ class Api {
           String email, String code, String password) =>
       request('POST', '/api/auth/reset-password',
           body: {'email': email, 'code': code, 'password': password});
+  static Future<Map<String, dynamic>> me() async =>
+      Map<String, dynamic>.from(await request('GET', '/api/auth/me'));
+  static Future<dynamic> updateProfile(String displayName) =>
+      request('PUT', '/api/auth/me', body: {'displayName': displayName});
   static Future<List<dynamic>> funds() async =>
       List<dynamic>.from(await _getCached('funds', '/api/funds'));
   static Future<dynamic> createFund(String name) =>
