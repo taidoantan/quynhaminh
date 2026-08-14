@@ -474,7 +474,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.7';
+const _appVersion = '2.0.8';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
@@ -1148,6 +1148,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
   String? cat, account, member;
   DateTime date = DateTime.now();
   bool busy = true;
+  Color get accent => type == 'income' ? green : red;
   @override
   void initState() {
     super.initState();
@@ -1232,6 +1233,12 @@ class _TransactionEditorState extends State<TransactionEditor> {
           : SafeArea(
               minimum: const EdgeInsets.fromLTRB(18, 8, 18, 12),
               child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(56),
+                      textStyle: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w800)),
                   onPressed: save,
                   icon: const Icon(Icons.save_rounded),
                   label: const Text('Lưu giao dịch'))),
@@ -1242,9 +1249,28 @@ class _TransactionEditorState extends State<TransactionEditor> {
               children: [
                   SegmentedButton<String>(
                       showSelectedIcon: false,
+                      style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.resolveWith(
+                              (states) => states.contains(WidgetState.selected)
+                                  ? accent.withValues(alpha: .15)
+                                  : Colors.white),
+                          foregroundColor: WidgetStateProperty.resolveWith(
+                              (states) => states.contains(WidgetState.selected)
+                                  ? accent
+                                  : const Color(0xff59657a)),
+                          side: WidgetStatePropertyAll(
+                              BorderSide(color: accent.withValues(alpha: .50))),
+                          textStyle: const WidgetStatePropertyAll(TextStyle(
+                              fontSize: 17, fontWeight: FontWeight.w800))),
                       segments: const [
-                        ButtonSegment(value: 'income', label: Text('Thu')),
-                        ButtonSegment(value: 'expense', label: Text('Chi'))
+                        ButtonSegment(
+                            value: 'income',
+                            icon: Icon(Icons.south_west_rounded),
+                            label: Text('Thu')),
+                        ButtonSegment(
+                            value: 'expense',
+                            icon: Icon(Icons.north_east_rounded),
+                            label: Text('Chi'))
                       ],
                       selected: {type},
                       onSelectionChanged: (v) {
@@ -1255,10 +1281,16 @@ class _TransactionEditorState extends State<TransactionEditor> {
                   TextField(
                       controller: amount,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(
-                          fontSize: 26, fontWeight: FontWeight.bold),
-                      decoration: const InputDecoration(
-                          labelText: 'Số tiền', suffixText: '₫')),
+                      style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: accent),
+                      decoration: InputDecoration(
+                          labelText: 'Số tiền',
+                          suffixText: '₫',
+                          suffixStyle: TextStyle(
+                              color: accent, fontWeight: FontWeight.w800),
+                          labelStyle: TextStyle(color: accent))),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                       initialValue: cat,
