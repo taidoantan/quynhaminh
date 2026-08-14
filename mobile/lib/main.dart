@@ -707,8 +707,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return const Center(child: CircularProgressIndicator());
             final d = x.data;
             final allCats = List<dynamic>.from(d['categories'] ?? []);
-            final cats =
-                allCats.where((e) => '' == dashboardChartType).toList();
+            final cats = allCats
+                .where((e) => '${e['type'] ?? 'expense'}' == dashboardChartType)
+                .toList();
             return RefreshIndicator(
                 onRefresh: () async => widget.s.refresh(),
                 child: ListView(padding: const EdgeInsets.all(14), children: [
@@ -791,6 +792,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Row(children: [
+                              const Expanded(
+                                  child: Text('Biểu đồ theo danh mục',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold))),
+                              SegmentedButton<String>(
+                                  showSelectedIcon: false,
+                                  selected: {dashboardChartType},
+                                  onSelectionChanged: (v) => setState(
+                                      () => dashboardChartType = v.first),
+                                  segments: const [
+                                    ButtonSegment(
+                                        value: 'income', label: Text('Thu')),
+                                    ButtonSegment(
+                                        value: 'expense', label: Text('Chi'))
+                                  ])
+                            ]),
                             const Text('Biểu đồ chi tiêu theo danh mục',
                                 style: TextStyle(fontWeight: FontWeight.bold)),
                             const SizedBox(height: 12),
@@ -1697,6 +1715,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 child: MetricCard('Tổng chi', d['expense'], red,
                                     Icons.arrow_upward))
                           ]),
+                          SegmentedButton<String>(
+                              showSelectedIcon: false,
+                              selected: {reportChartType},
+                              onSelectionChanged: (v) =>
+                                  setState(() => reportChartType = v.first),
+                              segments: const [
+                                ButtonSegment(
+                                    value: 'income', label: Text('Thu')),
+                                ButtonSegment(
+                                    value: 'expense', label: Text('Chi'))
+                              ]),
                           _ReportCharts(
                               categories: cats,
                               days: days,
@@ -3087,4 +3116,3 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
-
