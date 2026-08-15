@@ -480,7 +480,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-const _appVersion = '2.0.13';
+const _appVersion = '2.0.14';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
@@ -1617,6 +1617,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     final d = x.data,
                         cats = List<dynamic>.from(d['byCategory'] ?? []),
                         days = List<dynamic>.from(d['byDay'] ?? []);
+                    final reportCats = cats
+                        .where((e) =>
+                            '${e['type'] ?? 'expense'}' == reportChartType)
+                        .toList();
                     return ListView(
                         padding: const EdgeInsets.all(14),
                         children: [
@@ -1727,10 +1731,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                     value: 'expense', label: Text('Chi'))
                               ]),
                           _ReportCharts(
-                              categories: cats,
+                              categories: reportCats,
                               days: days,
                               balance: d['balance'],
-                              totalExpense: d['expense']),
+                              totalExpense: reportChartType == 'income'
+                                  ? d['income']
+                                  : d['expense']),
                           Row(children: [
                             Expanded(
                                 child: OutlinedButton.icon(
@@ -1800,9 +1806,52 @@ class _ReportCharts extends StatelessWidget {
                     SizedBox(
                         height: 180,
                         child: BarChart(BarChartData(
-                            titlesData: const FlTitlesData(show: false),
+                            titlesData: FlTitlesData(
+                                topTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                leftTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 30,
+                                        interval: 1,
+                                        getTitlesWidget: (value, meta) {
+                                          final i = value.toInt();
+                                          if (i < 0 || i >= rows.length)
+                                            return const SizedBox();
+                                          final d = DateTime.tryParse(
+                                              '${rows[i]['date']}');
+                                          return Padding(
+                                              padding:
+                                                  const EdgeInsets.only(top: 7),
+                                              child: Text(
+                                                  d == null
+                                                      ? ''
+                                                      : DateFormat('dd/MM')
+                                                          .format(d),
+                                                  style: const TextStyle(
+                                                      fontSize: 9,
+                                                      color:
+                                                          Color(0xff667085))));
+                                        }))),
                             borderData: FlBorderData(show: false),
-                            barTouchData: BarTouchData(enabled: false),
+                            barTouchData: BarTouchData(
+                                enabled: true,
+                                touchTooltipData: BarTouchTooltipData(
+                                    getTooltipItem:
+                                        (group, groupIndex, rod, rodIndex) {
+                                  final d = DateTime.tryParse(
+                                      '${rows[groupIndex]['date']}');
+                                  final kind = rodIndex == 0 ? 'Thu' : 'Chi';
+                                  return BarTooltipItem(
+                                      '${d == null ? '' : DateFormat('dd/MM/yyyy').format(d)}\n$kind: ${money(rod.toY)}',
+                                      TextStyle(
+                                          color: rodIndex == 0 ? green : red,
+                                          fontWeight: FontWeight.w800));
+                                })),
                             barGroups: rows
                                 .asMap()
                                 .entries

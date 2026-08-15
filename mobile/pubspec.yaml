@@ -1,7 +1,7 @@
 name: quy_nha_minh
 description: Ứng dụng quản lý quỹ gia đình đa nền tảng
 publish_to: none
-version: 2.0.13+17
+version: 2.0.14+18
 environment:
   sdk: '>=3.6.0 <4.0.0'
 dependencies:
@@ -33,6 +33,7 @@ flutter_launcher_icons:
   image_path: assets/app_logo.png
   adaptive_icon_foreground: assets/app_logo.png
   adaptive_icon_background: '#1769E0'
+
 
 
 
