@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -439,7 +440,13 @@ class _FundGateState extends State<FundGate> {
                           child: OutlinedButton.icon(
                               onPressed: () => action(true),
                               icon: const Icon(Icons.group_add),
-                              label: const Text('Tham gia bằng mã')))
+                              label: const Text('Tham gia bằng mã'))),
+                      TextButton(
+                          onPressed: () => ScaffoldMessenger.of(c).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Bạn có thể nhập mã mời bất cứ lúc nào khi sẵn sàng.'))),
+                          child: const Text('Bỏ qua — tôi sẽ nhập mã mời sau'))
                     ])))));
   }
 }
@@ -484,6 +491,22 @@ const _appVersion = '2.0.15';
 
 class _HomeShellState extends State<HomeShell> {
   late AppState s;
+  Timer? _syncTimer;
+  bool _syncing = false;
+
+  Future<void> _syncFromCloud() async {
+    if (_syncing) return;
+    _syncing = true;
+    try {
+      await Api.syncQueue();
+      await s.reloadFunds();
+      s.refresh();
+    } catch (_) {
+      // Giữ lại dữ liệu đang hiển thị khi thiết bị tạm mất mạng.
+    } finally {
+      _syncing = false;
+    }
+  }
 
   Future<void> _checkForUpdate() async {
     try {
@@ -519,8 +542,16 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     s = AppState(widget.funds);
-    Api.syncQueue();
+    _syncFromCloud();
+    _syncTimer =
+        Timer.periodic(const Duration(seconds: 20), (_) => _syncFromCloud());
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    super.dispose();
   }
 
   @override
