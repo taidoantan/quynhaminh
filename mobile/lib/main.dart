@@ -665,9 +665,39 @@ class _JoinFundDialogState extends State<JoinFundDialog> {
           ]);
 }
 
+void _showFundSwitcher(BuildContext context, AppState state) =>
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const ListTile(
+            title: Text('Chuyển đổi quỹ',
+                style: TextStyle(fontWeight: FontWeight.w800, color: blue))),
+        ...List.generate(
+            state.funds.length,
+            (i) => ListTile(
+                  leading: Icon(
+                      i == state.active
+                          ? Icons.check_circle
+                          : Icons.account_balance_wallet_outlined,
+                      color: i == state.active ? blue : null),
+                  title: Text('${state.funds[i]['name']}'),
+                  subtitle: Text('${state.funds[i]['role'] ?? ''}'),
+                  onTap: () {
+                    state.selectFund(i);
+                    Navigator.pop(sheet);
+                  },
+                )),
+      ])),
+    );
 PreferredSizeWidget topBar(BuildContext c, AppState s, String title,
         {List<Widget>? actions}) =>
     AppBar(
+        leading: IconButton(
+            icon: const Icon(Icons.menu_rounded),
+            tooltip: 'Chuyển đổi quỹ',
+            onPressed: () => _showFundSwitcher(c, s)),
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title,
               style: const TextStyle(
@@ -3165,5 +3195,3 @@ class ErrorView extends StatelessWidget {
                 label: const Text('Thử lại'))
           ])));
 }
-
-
