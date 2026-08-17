@@ -1631,7 +1631,7 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   int period = 1;
-  DateTime selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime selectedMonth = DateTime.now();
   String? memberId, categoryId;
   String reportChartType = 'expense';
   late Future<List<dynamic>> members;
@@ -1667,7 +1667,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               if (!m.hasData)
                 return const Center(child: CircularProgressIndicator());
               return FutureBuilder<dynamic>(
-                  key: ValueKey(query),
+                  key: ValueKey('$query-${widget.s.revision}'),
                   future: Api.request(
                       'GET', '/api/funds/${widget.s.id}/reports?$query'),
                   builder: (c, x) {
@@ -1696,14 +1696,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               },
                               onSelectionChanged: (v) =>
                                   setState(() => period = v.first)),
-                          if (period == 1)
+                          if (period != 2)
                             Card(
                                 child: Row(children: [
                               IconButton(
                                   onPressed: () => setState(() =>
-                                      selectedMonth = DateTime(
-                                          selectedMonth.year,
-                                          selectedMonth.month - 1)),
+                                      selectedMonth = period == 0
+                                          ? selectedMonth
+                                              .subtract(const Duration(days: 1))
+                                          : DateTime(selectedMonth.year,
+                                              selectedMonth.month - 1)),
                                   icon: const Icon(Icons.chevron_left_rounded)),
                               Expanded(
                                   child: InkWell(
@@ -1713,24 +1715,36 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                             initialDate: selectedMonth,
                                             firstDate: DateTime(2020),
                                             lastDate: DateTime(2100),
-                                            initialDatePickerMode:
-                                                DatePickerMode.year);
-                                        if (d != null)
+                                            initialDatePickerMode: period == 0
+                                                ? DatePickerMode.day
+                                                : DatePickerMode.year);
+                                        if (d != null) {
                                           setState(() => selectedMonth =
-                                              DateTime(d.year, d.month));
+                                              period == 0
+                                                  ? d
+                                                  : DateTime(d.year, d.month));
+                                        }
                                       },
                                       child: Center(
                                           child: Text(
-                                              DateFormat('MMMM, yyyy', 'vi_VN')
-                                                  .format(selectedMonth),
+                                              period == 0
+                                                  ? DateFormat(
+                                                          'EEEE, dd/MM/yyyy',
+                                                          'vi_VN')
+                                                      .format(selectedMonth)
+                                                  : DateFormat(
+                                                          'MMMM, yyyy', 'vi_VN')
+                                                      .format(selectedMonth),
                                               style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))))),
                               IconButton(
                                   onPressed: () => setState(() =>
-                                      selectedMonth = DateTime(
-                                          selectedMonth.year,
-                                          selectedMonth.month + 1)),
+                                      selectedMonth = period == 0
+                                          ? selectedMonth
+                                              .add(const Duration(days: 1))
+                                          : DateTime(selectedMonth.year,
+                                              selectedMonth.month + 1)),
                                   icon: const Icon(Icons.chevron_right_rounded))
                             ])),
                           Card(
@@ -1846,7 +1860,7 @@ class _ReportCharts extends StatelessWidget {
       Colors.teal
     ];
     final cats = categories.take(6).toList();
-    final rows = days.take(12).toList();
+    final rows = days.length > 12 ? days.sublist(days.length - 12) : days;
     final total = (num.tryParse('$totalExpense') ?? 0).toDouble();
     return Column(children: [
       Card(
